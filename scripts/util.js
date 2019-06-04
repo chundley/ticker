@@ -1,5 +1,5 @@
 /**
- * Utility functions for Google sheets
+ * Utility functions for Google sheets stock tracker
  *
  * Copyright 2019 Chris Hundley
  *
@@ -45,6 +45,9 @@ function setCell(sheetName, cell, value) {
   getSheetByName(sheetName).getRange(cell).setValue(value);
 }
 
+/**
+ * Given a sheet name, start cell, and end cell, set the value in that cell to blank
+ */
 function clearRange(sheetName, start, end) {
   getSheetByName(sheetName).getRange(sheetName + '!' + start + ':' + end).setValue('');
 }
@@ -52,7 +55,8 @@ function clearRange(sheetName, start, end) {
 /**
  * Gets the next column in sequence, works up to column ZZ (676 columns)
  *
- * Examples:  'C' --> 'D'    'AZ' --> 'BA'
+ * Examples:  Pass in  'C' --> 'D'
+ *            Pass in 'AZ' --> 'BA'
  */
 function getNextColumn(currentColumn) {
   var nextColumn = '';
@@ -74,6 +78,9 @@ function getNextColumn(currentColumn) {
   return nextColumn;
 }
 
+/**
+ * Toast alert
+ */
 function alert(message, title, timeout) {
   if (!title) {
     title = 'Ticker status';
@@ -84,6 +91,9 @@ function alert(message, title, timeout) {
   SpreadsheetApp.getActiveSpreadsheet().toast(message, title, timeout);
 }
 
+/**
+ * Add a debug message to the debug tab
+ */
 function debugMessage(call, message) {
   setCell(sheetNames.debug, 'A' + debugRow, call);
   setCell(sheetNames.debug, 'B' + debugRow, message);

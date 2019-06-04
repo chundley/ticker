@@ -19,14 +19,59 @@
  *
  */
 
+
+/**
+ * Refresh all data and update the dashboard
+ */
+function refreshAll() {
+  clearRange(sheetNames.debug, 'A2', 'B50');
+  alert('Updating current stock prices');
+  refreshStockCurrent();
+
+  alert('Updating historical stock prices');
+  refreshStockHistory();
+
+  alert('Updating dashboard stock returns');
+  updateStockDashboard();
+
+  alert('Updating current crypto prices');
+  refreshCryptoCurrent();
+
+  alert('Updating historical crypto prices');
+  refreshCryptoHistory();
+
+  alert('Updating dashboard crypto returns');
+  updateCryptoDashboard();
+
+  alert('Updates complete');
+}
+
+/**
+ * Refresh all real-time prices and update the dashboard
+ */
+function refreshCurrent() {
+  clearRange(sheetNames.debug, 'A2', 'B50');
+  alert('Updating current stock prices');
+  refreshStockCurrent();
+
+  alert('Updating dashboard stock returns');
+  updateStockDashboard();
+
+  alert('Updating current crypto prices');
+  refreshCryptoCurrent();
+
+  alert('Updating dashboard crypto returns');
+  updateCryptoDashboard();
+
+  alert('Updates complete');
+}
+
 /**
  * Refreshes the stock pricing - current trading day and up to the minute price for everything in the StockCurrent
  * tab. Then updates latest price for anywhere else necessary
  *
  */
 function refreshStockCurrent() {
-  alert('Updating current stock prices');
-  clearRange(sheetNames.debug, 'A2', 'B50');
   var symbols = getUniqueSymbols(sheetNames.stockCurrent, 'A', 3);
   var data = getCurrentStockPrices(symbols, 80);
 
@@ -58,7 +103,6 @@ function refreshStockCurrent() {
   }
   alert('Updating stock purchased');
   updateStockPurchased();
-  alert('Update Complete');
 }
 
 /**
@@ -99,10 +143,13 @@ function updateStockPurchased() {
     }
     row++;
   }
+}
 
-  // Update the dashboard with cost basis and returns for all stock
-  alert('Updating dashboard');
-  clearRange(sheetNames.dashboard, 'A5', 'G50');
+/**
+ * Update the dashboard with stock prices and returns
+ */
+function updateStockDashboard() {
+  clearRange(sheetNames.dashboard, 'A5', 'F14');
   done = false;
   row = 3;
   var sData = {};
@@ -150,8 +197,18 @@ function updateStockPurchased() {
     }
   }
 
+  var totals = {
+    cost: 0,
+    value: 0,
+    div: 0
+  };
+
   row = 5;
   Object.keys(sData).forEach(function(item) {
+    totals.cost += sData[item].cost;
+    totals.value += sData[item].value;
+    totals.div += sData[item].div;
+
     setCell(sheetNames.dashboard, 'A' + row, item);
     setCell(sheetNames.dashboard, 'B' + row, sData[item].shares);
     setCell(sheetNames.dashboard, 'C' + row, sData[item].price);
@@ -160,13 +217,17 @@ function updateStockPurchased() {
     setCell(sheetNames.dashboard, 'F' + row, sData[item].div);
     row++;
   });
+
+  // throw totals in
+  setCell(sheetNames.dashboard, 'D' + row, totals.cost);
+  setCell(sheetNames.dashboard, 'E' + row, totals.value);
+  setCell(sheetNames.dashboard, 'F' + row, totals.div);
 }
 
 /**
  * Updates the StockHistory tab
  */
 function refreshStockHistory() {
-  alert('Updating stock history');
   var symbols = getUniqueSymbols(sheetNames.stockHistory, 'A', 3);
   var data = getHistoricalStockPrices(symbols, 250);
 
@@ -196,122 +257,12 @@ function refreshStockHistory() {
       done = true;
     }
   }
-  alert('Stock history finished');
 }
 
 /**
- * Update all
+ * Updates the CryptoCurrent tab
  */
-function updateAll() {
-
-  // clear debug and other ephemeral output
-
-  //setCell('Dashboard', 'I3', '');
-  //setCell('Dashboard', 'I4', '');
-  //setCell('Stock', 'K2', '');
-  //setCell('Stock', 'K3', '');
-  //setCell('Crypto', 'K2', '');
-  //setCell('Crypto', 'K3', '');
-  //setCell('Debug', 'B2', '');
-  //setCell('Debug', 'B3', '');
-
-  // start updates
-  //setCell('Dashboard', 'I3', 'Updating Stock Prices...');
-  //updateStock();
-
-  //setCell('Dashboard', 'I3', 'Updating Stock Returns...');
-  //updateStockReturnsBySymbol();
-
-  //setCell('Dashboard', 'I3', 'Updating Stock Watch...');
-  //updateStockHistory();
-
-  //setCell('Dashboard', 'I3', 'Updating Crypto Prices...');
-  //updateCrypto();
-
-  //setCell('Dashboard', 'I3', 'Updating Crypto Returns...');
-  //updateCryptoReturnsBySymbol();
-
-  //setCell('Dashboard', 'I3', 'Updating Crypto Watch...');
-  //updateCryptoHistory();
-
-  //setCell('Dashboard', 'I3', 'Finished Updating');
-}
-
-
-
-
-
-function refreshCryptoPricesOLD() {
-  alert('Updating crypto history');
-  var symbols = getUniqueSymbols(sheetNames.cryptoHistory, 'A', 3);
-  var prices = getCryptoPrices(symbols, 1);
-  setCell('Debug', 'B3', JSON.stringify(prices));
-
-  // Rate limits - unclear why we hit this
-  if (prices.Response && prices.Response == 'Error') {
-    setCell('Crypto', 'K2', 'Update Finished');
-    setCell('Dashboard', 'I4', 'Error when requesting Crypto Updates');
-    setCell('Crypto', 'K3', 'Error when requesting Crypto Updates');
-    return;
-  }
-
-  var done = false;
-  var row = 3;
-  while (!done) {
-    var symbol = getCell('Crypto', 'A' + row);
-    if (symbol && symbol.length > 0) {
-      setCell('Crypto', 'E' + row, prices[symbol].USD);
-      row++;
-    }
-    else {
-      done = true;
-    }
-  }
-  setCell('Crypto', 'K2', 'Update Finished');
-}
-
-/**
- * Updates Dashboard crypto returns by symbol
- */
-function refreshCryptoHistoryOLD() {
-  var sData = {};
-  var done = false;
-  var row = 3;
-  while (!done) {
-    var symbol = getCell('Crypto', 'A' + row);
-    if (symbol && symbol.length > 0) {
-      if (!sData[symbol]) {
-        sData[symbol] = {
-          shares: 0,
-          price: 0,
-          cost: 0,
-          value: 0
-        };
-      }
-      sData[symbol].shares += getCell('Crypto', 'B' + row);
-      sData[symbol].price = getCell('Crypto', 'E' + row);
-      sData[symbol].cost += getCell('Crypto', 'D' + row);
-      sData[symbol].value += getCell('Crypto', 'F' + row);
-      row++;
-    }
-    else {
-      done = true;
-    }
-  }
-
-  var outputRow = 11;
-  Object.keys(sData).forEach(function(item) {
-    setCell('Dashboard', 'J' + outputRow, item);
-    setCell('Dashboard', 'K' + outputRow, sData[item].shares);
-    setCell('Dashboard', 'L' + outputRow, sData[item].price);
-    setCell('Dashboard', 'M' + outputRow, sData[item].cost);
-    setCell('Dashboard', 'N' + outputRow, sData[item].value);
-    outputRow++;
-  });
-}
-
 function refreshCryptoCurrent() {
-  alert('Updating crypto current prices');
   var symbols = getUniqueSymbols(sheetNames.cryptoCurrent, 'A', 3);
   var data = getCryptoCurrent(symbols, 480);
 
@@ -342,14 +293,108 @@ function refreshCryptoCurrent() {
       done = true;
     }
   }
-  alert('Crypto current prices updated');
+  alert('Updating crypto purchased');
+  updateCryptoPurchased();
+}
+
+/**
+ * Update the CryptoPurchased tab and refresh crypto returns on the dashboard
+ */
+function updateCryptoPurchased() {
+  var done = false;
+  var row = 3;
+  var symbols = {};
+
+  // grab most current price for all tracked crypto
+  while (!done) {
+    var symbol = getCell(sheetNames.cryptoCurrent, 'A' + row);
+    if (symbol) {
+      symbols[symbol] = getCell(sheetNames.cryptoCurrent, 'B' + row);
+    }
+    else {
+      done = true;
+    }
+    row++;
+  }
+
+  // Update the CryptoPurchased tab with latest prices
+  done = false;
+  row = 3;
+  while (!done) {
+    var symbol = getCell(sheetNames.cryptoPurchased, 'A' + row);
+    if (symbol) {
+      if (symbols[symbol]) {
+        setCell(sheetNames.cryptoPurchased, 'E' + row, symbols[symbol]);
+      }
+      else {
+        setCell(sheetNames.cryptoPurchased, 'E' + row, 'n/a');
+      }
+    }
+    else {
+      done = true;
+    }
+    row++;
+  }
+}
+
+/**
+ * Update the dashboard with Crypto prices and returns
+ */
+function updateCryptoDashboard() {
+  clearRange(sheetNames.dashboard, 'J5', 'N14');
+  done = false;
+  row = 3;
+  var sData = {};
+  while (!done) {
+    var symbol = getCell(sheetNames.cryptoPurchased, 'A' + row);
+    if (symbol) {
+      if (!sData[symbol]) {
+        sData[symbol] = {
+          shares: 0,
+          price: 0,
+          cost: 0,
+          value: 0
+        };
+      }
+      sData[symbol].shares += getCell(sheetNames.cryptoPurchased, 'B' + row);
+      sData[symbol].price = getCell(sheetNames.cryptoPurchased, 'E' + row);
+      sData[symbol].cost += getCell(sheetNames.cryptoPurchased, 'D' + row);
+      sData[symbol].value += getCell(sheetNames.cryptoPurchased, 'F' + row);
+      row++;
+    }
+    else {
+      done = true;
+    }
+  }
+
+  var totals = {
+    cost: 0,
+    value: 0,
+    div: 0
+  };
+
+  row = 5;
+  Object.keys(sData).forEach(function(item) {
+    totals.cost += sData[item].cost;
+    totals.value += sData[item].value;
+
+    setCell(sheetNames.dashboard, 'J' + row, item);
+    setCell(sheetNames.dashboard, 'K' + row, sData[item].shares);
+    setCell(sheetNames.dashboard, 'L' + row, sData[item].price);
+    setCell(sheetNames.dashboard, 'M' + row, sData[item].cost);
+    setCell(sheetNames.dashboard, 'N' + row, sData[item].value);
+    row++;
+  });
+
+  // throw totals in
+  setCell(sheetNames.dashboard, 'M' + row, totals.cost);
+  setCell(sheetNames.dashboard, 'N' + row, totals.value);
 }
 
 /**
  * Updates the CryptoHistory tab
  */
 function refreshCryptoHistory() {
-  alert('Updating crypto historical prices');
   var symbols = getUniqueSymbols(sheetNames.cryptoHistory, 'A', 3);
   var data = getCryptoHistory(symbols, 365);
 
@@ -380,11 +425,6 @@ function refreshCryptoHistory() {
       done = true;
     }
   }
-  alert('Crypto history complete');
-}
-
-function cleanDashboardPositions() {
-  clearRange(sheetNames.dashboard, 'A5', 'F14');
 }
 
 /**

@@ -3,6 +3,8 @@
  *
  * https://min-api.cryptocompare.com/documentation
  *
+ * Rate limit: 50/sec 2500/minute, 25K/hour, 100K/month
+ *
  * Copyright 2019 Chris Hundley
  *
  * MIT LICENSE
@@ -73,10 +75,13 @@ function getCryptoPrices(symbols) {
   };
 
   var resp = cryptoRequest('/data/pricemulti', params);
-  debugMessage('CryptoCompare /v1/bars/5Min', JSON.stringify(resp).substring(0,255));
+  debugMessage('CryptoCompare /data/pricemulti', JSON.stringify(resp).substring(0,255));
   return resp;
 }
 
+/**
+ * Get crypto prices in one-minute interval for x number of data points
+ */
 function getCryptoCurrent(symbols, limit) {
   var results = {};
   symbols.forEach(function(symbol) {
@@ -95,6 +100,9 @@ function getCryptoCurrent(symbols, limit) {
   return results;
 }
 
+/**
+ * Get daily closing price for crypto symbols for x days
+ */
 function getCryptoHistory(symbols, limit) {
   var results = {};
   symbols.forEach(function(symbol) {

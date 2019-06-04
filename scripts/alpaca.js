@@ -3,6 +3,8 @@
  *
  * https://docs.alpaca.markets/api-documentation/
  *
+ * Rate limit: 200 requests per minute
+ *
  * Copyright 2019 Chris Hundley
  *
  * MIT LICENSE
@@ -30,6 +32,8 @@ function alpacaApiRequest(path, params) {
 
 /**
  * Request to the Alpaca data API
+ *
+ * https://docs.alpaca.markets/api-documentation/web-api/market-data/bars/
  */
 function alpacaDataRequest(path, params) {
   return alpacaRequest('https://data.alpaca.markets', path, params);
@@ -84,7 +88,7 @@ function getAsset(symbol) {
 }
 
 /**
- * Gets price data for a set of symbols for x number of days
+ * Gets daily closing price for a set of symbols for x number of days
  */
 function getHistoricalStockPrices(symbols, days) {
   var params = {
@@ -99,6 +103,9 @@ function getHistoricalStockPrices(symbols, days) {
   return resp;
 }
 
+/**
+ * Get stock price at five minute intervals for a set of symbols for x number of data points
+ */
 function getCurrentStockPrices(symbols, count) {
   var params = {
     qs: {

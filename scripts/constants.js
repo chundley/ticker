@@ -25,7 +25,7 @@ var sheetNames = {
   dashboard: 'Dashboard',
   stockPurchased: 'StockPurchased',
   stockDividend: 'StockDividend',
-  crypto: 'Crypto',
+  cryptoPurchased: 'CryptoPurchased',
   stockCurrent: 'StockCurrent',
   stockHistory: 'StockHistory',
   cryptoCurrent: 'CryptoCurrent',
