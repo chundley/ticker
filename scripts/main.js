@@ -25,6 +25,7 @@
  */
 function refreshAll() {
   clearRange(sheetNames.debug, 'A2', 'B50');
+
   alert('Updating current stock prices');
   refreshStockCurrent();
 
@@ -43,7 +44,10 @@ function refreshAll() {
   alert('Updating dashboard crypto returns');
   updateCryptoDashboard();
 
-  alert('Updates complete');
+  alert('Updating detail tab');
+  refreshDetail();
+
+  alert('Refresh complete');
 }
 
 /**
@@ -51,6 +55,7 @@ function refreshAll() {
  */
 function refreshCurrent() {
   clearRange(sheetNames.debug, 'A2', 'B50');
+
   alert('Updating current stock prices');
   refreshStockCurrent();
 
@@ -63,44 +68,69 @@ function refreshCurrent() {
   alert('Updating dashboard crypto returns');
   updateCryptoDashboard();
 
-  alert('Updates complete');
+  alert('Updating detail tab');
+  refreshDetail();
+
+  alert('Refresh complete');
+}
+
+function refreshStock() {
+  clearRange(sheetNames.debug, 'A2', 'B50');
+
+  alert('Updating current stock prices');
+  refreshStockCurrent();
+
+  alert('Updating dashboard stock returns');
+  updateStockDashboard();
+
+  alert('Refresh complete');
+}
+
+function refreshCrypto() {
+  clearRange(sheetNames.debug, 'A2', 'B50');
+
+  alert('Updating current crypto prices');
+  refreshCryptoCurrent();
+
+  alert('Updating dashboard crypto returns');
+  updateCryptoDashboard();
+
+  alert('Refresh complete');
 }
 
 /**
- * Refreshes the stock pricing - current trading day and up to the minute price for everything in the StockCurrent
- * tab. Then updates latest price for anywhere else necessary
- *
+ * Refreshes the stock pricing - current trading day in five minute intervals. The general process is:
+ * 1) Get unqiue symbols from the config tab
+ * 2) Request stock price data from Alpaca
+ * 3) Iterate the list of stock symbols and prices, filling in the StockCurrent worksheet
+ * 4) The FIRST iteration will also fill in the date row
+ * 5) After pulling all data, update the StockPurchased tab with updated returns
  */
 function refreshStockCurrent() {
-  var symbols = getUniqueSymbols(sheetNames.stockCurrent, 'A', 3);
+  var symbols = getUniqueSymbols(sheetNames.config, 'D', 2);
   var data = getCurrentStockPrices(symbols, 80);
-
-  var done = false;
   var row = 3;
   var datesDone = false;
 
-  while (!done) {
-    var symbol = getCell(sheetNames.stockCurrent, 'A' + row);
-    if (symbol && symbol.length > 0) {
+  clearRange(sheetNames.stockCurrent, 'A3', 'CC103');
+  symbols.forEach(function(symbol) {
+    // account for bad symbols
+    if (data[symbol]) {
       var column = 'A';
+      setCell(sheetNames.stockCurrent, column + row, symbol);
       data[symbol] = data[symbol].reverse();
       data[symbol].forEach(function(day) {
         column = getNextColumn(column);
-
         if (!datesDone) {
           setCell(sheetNames.stockCurrent, column + '2', new Date(day.t*1000));
         }
-
         setCell(sheetNames.stockCurrent, column + row, day.c);
       });
-
       datesDone = true;
       row++;
     }
-    else {
-      done = true;
-    }
-  }
+  });
+
   alert('Updating stock purchased');
   updateStockPurchased();
 }
@@ -177,7 +207,7 @@ function updateStockDashboard() {
   }
 
   // now calculate dividends
-  row = 2;
+  row = 3;
   done = false;
   while (!done) {
     var symbol = getCell(sheetNames.stockDividend, 'B' + row);
@@ -225,74 +255,68 @@ function updateStockDashboard() {
 }
 
 /**
- * Updates the StockHistory tab
+ * Updates the StockHistory tab, getting daily closing prices for the last year for each stock symbol
+ * in the config tab
  */
 function refreshStockHistory() {
-  var symbols = getUniqueSymbols(sheetNames.stockHistory, 'A', 3);
+  var symbols = getUniqueSymbols(sheetNames.config, 'D', 2);
   var data = getHistoricalStockPrices(symbols, 250);
-
-  var done = false;
   var row = 3;
   var datesDone = false;
 
-  while (!done) {
-    var symbol = getCell(sheetNames.stockHistory, 'A' + row);
-    if (symbol) {
+  clearRange(sheetNames.stockHistory, 'A3', 'IQ103');
+  symbols.forEach(function(symbol) {
+    // account for bad symbols
+    if (data[symbol]) {
       var column = 'A';
+      setCell(sheetNames.stockHistory, column + row, symbol);
       data[symbol] = data[symbol].reverse();
       data[symbol].forEach(function(day) {
         column = getNextColumn(column);
-
         if (!datesDone) {
           setCell(sheetNames.stockHistory, column + '2', new Date(day.t*1000));
         }
-
         setCell(sheetNames.stockHistory, column + row, day.c);
       });
-
       datesDone = true;
       row++;
     }
-    else {
-      done = true;
-    }
-  }
+  });
 }
 
 /**
- * Updates the CryptoCurrent tab
+ * Refreshes crypto pricing - current trading day in one minute intervals. The general process is:
+ * 1) Get unqiue symbols from the config tab
+ * 2) Request coin price data from CryptoCompare
+ * 3) Iterate the list of coin symbols and prices, filling in the CryptoCurrent worksheet
+ * 4) The FIRST iteration will also fill in the date row
+ * 5) After pulling all data, update the CryptoPurchased tab with updated returns
  */
 function refreshCryptoCurrent() {
-  var symbols = getUniqueSymbols(sheetNames.cryptoCurrent, 'A', 3);
+  var symbols = getUniqueSymbols(sheetNames.config, 'E', 2);
   var data = getCryptoCurrent(symbols, 480);
-
-  var done = false;
   var row = 3;
   var datesDone = false;
 
-  while (!done) {
-    var symbol = getCell(sheetNames.cryptoCurrent, 'A' + row);
-    if (symbol) {
+  clearRange(sheetNames.cryptoCurrent, 'A3', 'RN103');
+  symbols.forEach(function(symbol) {
+    // account for bad symbols
+    if (data[symbol]) {
       var column = 'A';
+      setCell(sheetNames.cryptoCurrent, column + row, symbol);
       data[symbol] = data[symbol].reverse();
-
       data[symbol].forEach(function(day) {
         column = getNextColumn(column);
-
         if (!datesDone) {
           setCell(sheetNames.cryptoCurrent, column + '2', new Date(day.time*1000));
         }
-
         setCell(sheetNames.cryptoCurrent, column + row, day.close);
       });
-
       datesDone = true;
       row++;
     }
-    else {
-      done = true;
-    }
-  }
+  });
+
   alert('Updating crypto purchased');
   updateCryptoPurchased();
 }
@@ -395,36 +419,228 @@ function updateCryptoDashboard() {
  * Updates the CryptoHistory tab
  */
 function refreshCryptoHistory() {
-  var symbols = getUniqueSymbols(sheetNames.cryptoHistory, 'A', 3);
+  var symbols = getUniqueSymbols(sheetNames.config, 'E', 2);
   var data = getCryptoHistory(symbols, 365);
-
-  var done = false;
   var row = 3;
   var datesDone = false;
 
-  while (!done) {
-    var symbol = getCell(sheetNames.cryptoHistory, 'A' + row);
-    if (symbol) {
+  clearRange(sheetNames.cryptoHistory, 'A3', 'NC103');
+  symbols.forEach(function(symbol) {
+    // account for bad symbols
+    if (data[symbol]) {
       var column = 'A';
+      setCell(sheetNames.cryptoHistory, column + row, symbol);
       data[symbol] = data[symbol].reverse();
-
       data[symbol].forEach(function(day) {
         column = getNextColumn(column);
-
         if (!datesDone) {
           setCell(sheetNames.cryptoHistory, column + '2', new Date(day.time*1000));
         }
-
         setCell(sheetNames.cryptoHistory, column + row, day.close);
       });
-
       datesDone = true;
       row++;
     }
-    else {
-      done = true;
+  });
+}
+
+function refreshDetail() {
+  var symbols = getUniqueSymbols(sheetNames.config, 'D', 2);
+  var row = 4;
+
+  // hold latest prices for other calculations
+  var latestPrices = {};
+
+  symbols.forEach(function(symbol) {
+    var cRow = 3;
+    var done = false;
+    while (!done) {
+      var cSymbol = getCell(sheetNames.stockCurrent, 'A' + cRow);
+      if (!cSymbol) {
+        done = true;
+      }
+      if (cSymbol == symbol) {
+        done = true;
+        setCell(sheetNames.detail, 'A' + row, cSymbol);
+        var today = getCell(sheetNames.stockCurrent, 'B' + cRow);
+        latestPrices[symbol] = today;
+        var compare = getLastValueInRow(sheetNames.stockCurrent, 'B', cRow);
+        setCell(sheetNames.detail, 'B' + row, today - compare);
+        setCell(sheetNames.detail, 'C' + row, (today - compare)/compare);
+      }
+      cRow++;
     }
-  }
+
+    var hRow = 3;
+    done = false;
+    while (!done) {
+      var hSymbol = getCell(sheetNames.stockHistory, 'A' + hRow);
+      if (!hSymbol) {
+        done = true;
+      }
+      if (hSymbol == symbol) {
+        done = true;
+
+        // week change
+        var compare = getCell(sheetNames.stockHistory, 'F'+ hRow);
+        if (compare) {
+          setCell(sheetNames.detail, 'D' + row, latestPrices[symbol] - compare);
+          setCell(sheetNames.detail, 'E' + row, (latestPrices[symbol] - compare)/compare);
+        }
+        else {
+          setCell(sheetNames.detail, 'D' + row, 'n/a');
+          setCell(sheetNames.detail, 'E' + row, 'n/a');
+        }
+
+        // month change
+        compare = getCell(sheetNames.stockHistory, 'V'+ hRow);
+        if (compare) {
+          setCell(sheetNames.detail, 'F' + row, latestPrices[symbol] - compare);
+          setCell(sheetNames.detail, 'G' + row, (latestPrices[symbol] - compare)/compare);
+        }
+        else {
+          setCell(sheetNames.detail, 'F' + row, 'n/a');
+          setCell(sheetNames.detail, 'G' + row, 'n/a');
+        }
+
+        // three month change
+        compare = getCell(sheetNames.stockHistory, 'BM'+ hRow);
+        if (compare) {
+          setCell(sheetNames.detail, 'H' + row, latestPrices[symbol] - compare);
+          setCell(sheetNames.detail, 'I' + row, (latestPrices[symbol] - compare)/compare);
+        }
+        else {
+          setCell(sheetNames.detail, 'H' + row, 'n/a');
+          setCell(sheetNames.detail, 'I' + row, 'n/a');
+        }
+
+        // six month change
+        compare = getCell(sheetNames.stockHistory, 'DV'+ hRow);
+        if (compare) {
+          setCell(sheetNames.detail, 'J' + row, latestPrices[symbol] - compare);
+          setCell(sheetNames.detail, 'K' + row, (latestPrices[symbol] - compare)/compare);
+        }
+        else {
+          setCell(sheetNames.detail, 'J' + row, 'n/a');
+          setCell(sheetNames.detail, 'K' + row, 'n/a');
+        }
+
+        // twelve month change
+        compare = getCell(sheetNames.stockHistory, 'IQ'+ hRow);
+        if (compare) {
+          setCell(sheetNames.detail, 'L' + row, latestPrices[symbol] - compare);
+          setCell(sheetNames.detail, 'M' + row, (latestPrices[symbol] - compare)/compare);
+        }
+        else {
+          setCell(sheetNames.detail, 'L' + row, 'n/a');
+          setCell(sheetNames.detail, 'M' + row, 'n/a');
+        }
+
+        row++;
+      }
+      hRow++;
+    }
+  });
+
+  refreshCryptoDetail(row);
+}
+
+function refreshCryptoDetail(row) {
+  var symbols = getUniqueSymbols(sheetNames.config, 'E', 2);
+
+  // hold latest prices for other calculations
+  var latestPrices = {};
+
+  symbols.forEach(function(symbol) {
+    var cRow = 3;
+    var done = false;
+    while (!done) {
+      var cSymbol = getCell(sheetNames.cryptoCurrent, 'A' + cRow);
+      if (!cSymbol) {
+        done = true;
+      }
+      if (cSymbol == symbol) {
+        done = true;
+        setCell(sheetNames.detail, 'A' + row, cSymbol);
+        var today = getCell(sheetNames.cryptoCurrent, 'B' + cRow);
+        latestPrices[symbol] = today;
+        var compare = getLastValueInRow(sheetNames.cryptoCurrent, 'B', cRow);
+        setCell(sheetNames.detail, 'B' + row, today - compare);
+        setCell(sheetNames.detail, 'C' + row, (today - compare)/compare);
+      }
+      cRow++;
+    }
+
+    var hRow = 3;
+    done = false;
+    while (!done) {
+      var hSymbol = getCell(sheetNames.cryptoHistory, 'A' + hRow);
+      if (!hSymbol) {
+        done = true;
+      }
+      if (hSymbol == symbol) {
+        done = true;
+
+        // week change
+        var compare = getCell(sheetNames.cryptoHistory, 'H'+ hRow);
+        if (compare) {
+          setCell(sheetNames.detail, 'D' + row, latestPrices[symbol] - compare);
+          setCell(sheetNames.detail, 'E' + row, (latestPrices[symbol] - compare)/compare);
+        }
+        else {
+          setCell(sheetNames.detail, 'D' + row, 'n/a');
+          setCell(sheetNames.detail, 'E' + row, 'n/a');
+        }
+
+        // month change
+        compare = getCell(sheetNames.cryptoHistory, 'AF'+ hRow);
+        if (compare) {
+          setCell(sheetNames.detail, 'F' + row, latestPrices[symbol] - compare);
+          setCell(sheetNames.detail, 'G' + row, (latestPrices[symbol] - compare)/compare);
+        }
+        else {
+          setCell(sheetNames.detail, 'F' + row, 'n/a');
+          setCell(sheetNames.detail, 'G' + row, 'n/a');
+        }
+
+        // three month change
+        compare = getCell(sheetNames.cryptoHistory, 'CO'+ hRow);
+        if (compare) {
+          setCell(sheetNames.detail, 'H' + row, latestPrices[symbol] - compare);
+          setCell(sheetNames.detail, 'I' + row, (latestPrices[symbol] - compare)/compare);
+        }
+        else {
+          setCell(sheetNames.detail, 'H' + row, 'n/a');
+          setCell(sheetNames.detail, 'I' + row, 'n/a');
+        }
+
+        // six month change
+        compare = getCell(sheetNames.cryptoHistory, 'EV'+ hRow);
+        if (compare) {
+          setCell(sheetNames.detail, 'J' + row, latestPrices[symbol] - compare);
+          setCell(sheetNames.detail, 'K' + row, (latestPrices[symbol] - compare)/compare);
+        }
+        else {
+          setCell(sheetNames.detail, 'J' + row, 'n/a');
+          setCell(sheetNames.detail, 'K' + row, 'n/a');
+        }
+
+        // twelve month change
+        compare = getCell(sheetNames.cryptoHistory, 'NB'+ hRow);
+        if (compare) {
+          setCell(sheetNames.detail, 'L' + row, latestPrices[symbol] - compare);
+          setCell(sheetNames.detail, 'M' + row, (latestPrices[symbol] - compare)/compare);
+        }
+        else {
+          setCell(sheetNames.detail, 'L' + row, 'n/a');
+          setCell(sheetNames.detail, 'M' + row, 'n/a');
+        }
+
+        row++;
+      }
+      hRow++;
+    }
+  });
 }
 
 /**

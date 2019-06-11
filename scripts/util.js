@@ -78,6 +78,22 @@ function getNextColumn(currentColumn) {
   return nextColumn;
 }
 
+function getLastValueInRow(sheetName, startColumn, row) {
+  var done = false;
+  var retVal = null;
+  while (!done) {
+    var val = getCell(sheetName, startColumn + row);
+    if (val) {
+      retVal = val;
+      startColumn = getNextColumn(startColumn);
+    }
+    else {
+      done = true;
+    }
+  }
+  return retVal;
+}
+
 /**
  * Toast alert
  */

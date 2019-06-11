@@ -23,6 +23,7 @@
 var sheetNames = {
   config: 'Config',
   dashboard: 'Dashboard',
+  detail: 'Detail',
   stockPurchased: 'StockPurchased',
   stockDividend: 'StockDividend',
   cryptoPurchased: 'CryptoPurchased',
