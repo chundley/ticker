@@ -18,6 +18,7 @@
  *
  */
 
+
 var sheetCache = {};
 var debugRow = 2;
 
@@ -78,6 +79,9 @@ function getNextColumn(currentColumn) {
   return nextColumn;
 }
 
+/**
+ * Given a sheet, starting column, and row, determine the last valid value at the end of the row
+ */
 function getLastValueInRow(sheetName, startColumn, row) {
   var done = false;
   var retVal = null;
@@ -92,6 +96,63 @@ function getLastValueInRow(sheetName, startColumn, row) {
     }
   }
   return retVal;
+}
+
+/**
+ * Given a range, find the minimum value in the range. Used for setting minimum range on chart vertical axis
+ */
+function getMinValueInRange(range) {
+  var minVal = 100000000;
+  var curVal = 0;
+  var rows = range.getNumRows();
+  var cols = range.getNumColumns();
+  for (var r=1; r<= rows; r++) {
+    for (var c=1; c<= cols; c++) {
+      curVal = range.getCell(r, c).getValue();
+      if (curVal && curVal < minVal) {
+        minVal = curVal;
+      }
+    }
+  }
+  return minVal;
+}
+
+/**
+ * Attempts to select a minimum y-axis scale cutoff appropriate for the data so the chart is
+ * readable. Without doing this prices would not show much variance, especially the daily data
+ */
+function getScaleCutoff(value) {
+  if (value < .1) {
+    return 0;
+  }
+  else if (value < 1) {
+    return value;
+  }
+  else if (value < 10) {
+    return parseInt(value / 1, 10) * 1;
+  }
+  else if (value < 50) {
+    return parseInt(value / 2, 10) * 2;
+  }
+  else if (value < 100) {
+    return parseInt(value / 5, 10) * 5;
+  }
+  else if (value < 1000) {
+    return parseInt(value / 20, 10) * 20;
+  }
+  else if (value < 10000) {
+    return parseInt(value / 1000, 10) * 1000;
+  }
+  else if (value < 100000) {
+    return parseInt(value / 10000, 10) * 10000;
+  }
+}
+
+/**
+ * Given a range of cells, format the numbers in that range based on passed in format
+ */
+function formatRange(range, format) {
+  range.setNumberFormat(format);
 }
 
 /**

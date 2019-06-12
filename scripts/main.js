@@ -44,6 +44,9 @@ function refreshAll() {
   alert('Updating dashboard crypto returns');
   updateCryptoDashboard();
 
+  alert('Updating dashboard charts');
+  refreshDashboardCharts();
+
   alert('Updating detail tab');
   refreshDetail();
 
@@ -67,6 +70,9 @@ function refreshCurrent() {
 
   alert('Updating dashboard crypto returns');
   updateCryptoDashboard();
+
+  alert('Updating dashboard charts');
+  refreshDashboardCharts();
 
   alert('Updating detail tab');
   refreshDetail();
@@ -444,6 +450,10 @@ function refreshCryptoHistory() {
   });
 }
 
+/**
+ * Refresh stock data on the detail tab. Once complete, also calls the refreshCrypto function. It's done here
+ * because we need to pass in the starting row after having refreshed the stock detail
+ */
 function refreshDetail() {
   var symbols = getUniqueSymbols(sheetNames.config, 'D', 2);
   var row = 4;
@@ -545,6 +555,9 @@ function refreshDetail() {
   refreshCryptoDetail(row);
 }
 
+/**
+ * Refresh crypto data on the detail tab
+ */
 function refreshCryptoDetail(row) {
   var symbols = getUniqueSymbols(sheetNames.config, 'E', 2);
 
@@ -641,6 +654,171 @@ function refreshCryptoDetail(row) {
       hRow++;
     }
   });
+}
+
+/**
+ * Removes existing charts from the dashboard and re-creates them for the four categories of charts
+ */
+function refreshDashboardCharts() {
+  removeChartsFromSheet(sheetNames.dashboard);
+
+  alert('Updating historical stock charts');
+  refreshYearStockCharts();
+
+  alert('Updating day stock charts');
+  refreshDayStockCharts();
+
+  alert('Updating historical crypto charts');
+  refreshYearCryptoCharts();
+
+  alert('Updating day crypto charts');
+  refreshDayCryptoCharts();
+}
+
+/**
+ * Refreshes the year-long stock charts
+ */
+function refreshYearStockCharts() {
+  var historySheet = getSheetByName(sheetNames.stockHistory);
+  var done = false;
+  var row = 3;
+
+  var chartRow = 18;
+  var options = {
+    title: '',
+    row: 18,
+    column: 1,
+    offsetLeft: 5,
+    offsetTop: 5,
+    width: 280,
+    height: 180,
+    backgroundColor: 'dark gray',
+    colors: ['#0075c9']
+  };
+  while (!done) {
+    var symbol = getCell(sheetNames.stockHistory, 'A' + row);
+    if (symbol) {
+      var range = historySheet.getRange('B' + row + ':IQ' + row);
+      options.title = symbol;
+      areaChart(range, sheetNames.dashboard, options);
+      row++;
+      options.row += 9;
+
+      //if (row == 5)
+      //  done = true;
+    }
+    else {
+      done = true;
+    }
+  }
+}
+
+/**
+ * Refreshes the daily stock charts
+ */
+function refreshDayStockCharts() {
+  var currentSheet = getSheetByName(sheetNames.stockCurrent);
+  var done = false;
+  var row = 3;
+
+  var chartRow = 18;
+  var options = {
+    title: '',
+    row: 18,
+    column: 5,
+    offsetLeft: 0,
+    offsetTop: 5,
+    width: 280,
+    height: 180,
+    backgroundColor: 'dark gray',
+    colors: ['#f06eaa']
+  };
+  while (!done) {
+    var symbol = getCell(sheetNames.stockCurrent, 'A' + row);
+    if (symbol) {
+      var range = currentSheet.getRange('B' + row + ':CC' + row);
+      options.title = symbol;
+      areaChart(range, sheetNames.dashboard, options);
+      row++;
+      options.row += 9;
+
+      //if (row == 5)
+      //  done = true;
+    }
+    else {
+      done = true;
+    }
+  }
+}
+
+/**
+ * Refreshes the year-long crypto charts
+ */
+function refreshYearCryptoCharts() {
+  var historySheet = getSheetByName(sheetNames.cryptoHistory);
+  var done = false;
+  var row = 3;
+
+  var chartRow = 18;
+  var options = {
+    title: '',
+    row: 18,
+    column: 10,
+    offsetLeft: 5,
+    offsetTop: 5,
+    width: 280,
+    height: 180,
+    backgroundColor: 'dark gray',
+    colors: ['#00a6b6']
+  };
+  while (!done) {
+    var symbol = getCell(sheetNames.cryptoHistory, 'A' + row);
+    if (symbol) {
+      var range = historySheet.getRange('B' + row + ':NC' + row);
+      options.title = symbol;
+      areaChart(range, sheetNames.dashboard, options);
+      row++;
+      options.row += 9;
+    }
+    else {
+      done = true;
+    }
+  }
+}
+
+/**
+ * Refreshes the daily crypto charts
+ */
+function refreshDayCryptoCharts() {
+  var historySheet = getSheetByName(sheetNames.cryptoCurrent);
+  var done = false;
+  var row = 3;
+
+  var chartRow = 18;
+  var options = {
+    title: '',
+    row: 18,
+    column: 14,
+    offsetLeft: 5,
+    offsetTop: 5,
+    width: 280,
+    height: 180,
+    backgroundColor: 'dark gray',
+    colors: ['#9157d8']
+  };
+  while (!done) {
+    var symbol = getCell(sheetNames.cryptoCurrent, 'A' + row);
+    if (symbol) {
+      var range = historySheet.getRange('B' + row + ':RN' + row);
+      options.title = symbol;
+      areaChart(range, sheetNames.dashboard, options);
+      row++;
+      options.row += 9;
+    }
+    else {
+      done = true;
+    }
+  }
 }
 
 /**

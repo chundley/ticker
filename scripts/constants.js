@@ -20,6 +20,7 @@
  *
  */
 
+
 var sheetNames = {
   config: 'Config',
   dashboard: 'Dashboard',
@@ -33,3 +34,5 @@ var sheetNames = {
   cryptoHistory: 'CryptoHistory',
   debug: 'Debug'
 };
+
+// TODO: Add all the column limits/constants so they aren't hard-coded all over the place
