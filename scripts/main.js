@@ -1,6 +1,10 @@
 /**
+ * TICKER v1.0
+ *
  * This script uses 3rd-party API's for stock and crypto pricing data to keep assets
- * up to date in the Ticker spreadsheet
+ * up to date in a Google sheet.
+ *
+ * Documentation: https://github.com/chundley/ticker
  *
  * Copyright 2019 Chris Hundley
  *
@@ -21,10 +25,25 @@
 
 
 /**
+ * On every run there are values we need to track to support dynamic layout
+ */
+var context = {
+  lastDashboardRowUsed: 0,
+  stockTotal: {},
+  cryptoTotal: {},
+  stockDetail: {},
+  cryptoDetail: {}
+};
+
+/**
  * Refresh all data and update the dashboard
  */
 function refreshAll() {
-  clearRange(sheetNames.debug, 'A2', 'B50');
+  removeChartsFromSheet(sheetNames.dashboard);
+  clearRangeValues(sheetNames.dashboard, 'A2:Z1000');
+  clearRangeFormat(sheetNames.dashboard, 'A2:Z1000');
+  setRangeBackground(sheetNames.dashboard, 'A2:Z1000', colors.dashboardBackground);
+  setRangeColor(sheetNames.dashboard, 'A2:Z1000', colors.dashboardText);
 
   alert('Updating current stock prices');
   refreshStockCurrent();
@@ -57,7 +76,11 @@ function refreshAll() {
  * Refresh all real-time prices and update the dashboard
  */
 function refreshCurrent() {
-  clearRange(sheetNames.debug, 'A2', 'B50');
+  removeChartsFromSheet(sheetNames.dashboard);
+  clearRangeValues(sheetNames.dashboard, 'A2:Z1000');
+  clearRangeFormat(sheetNames.dashboard, 'A2:Z1000');
+  setRangeBackground(sheetNames.dashboard, 'A2:Z1000', colors.dashboardBackground);
+  setRangeColor(sheetNames.dashboard, 'A2:Z1000', colors.dashboardText);
 
   alert('Updating current stock prices');
   refreshStockCurrent();
@@ -80,30 +103,6 @@ function refreshCurrent() {
   alert('Refresh complete');
 }
 
-function refreshStock() {
-  clearRange(sheetNames.debug, 'A2', 'B50');
-
-  alert('Updating current stock prices');
-  refreshStockCurrent();
-
-  alert('Updating dashboard stock returns');
-  updateStockDashboard();
-
-  alert('Refresh complete');
-}
-
-function refreshCrypto() {
-  clearRange(sheetNames.debug, 'A2', 'B50');
-
-  alert('Updating current crypto prices');
-  refreshCryptoCurrent();
-
-  alert('Updating dashboard crypto returns');
-  updateCryptoDashboard();
-
-  alert('Refresh complete');
-}
-
 /**
  * Refreshes the stock pricing - current trading day in five minute intervals. The general process is:
  * 1) Get unqiue symbols from the config tab
@@ -113,12 +112,12 @@ function refreshCrypto() {
  * 5) After pulling all data, update the StockPurchased tab with updated returns
  */
 function refreshStockCurrent() {
-  var symbols = getUniqueSymbols(sheetNames.config, 'D', 2);
+  var symbols = getUniqueSymbols(sheetNames.config, 'D', 4);
   var data = getCurrentStockPrices(symbols, 80);
   var row = 3;
   var datesDone = false;
 
-  clearRange(sheetNames.stockCurrent, 'A3', 'CC103');
+  clearRangeValues(sheetNames.stockCurrent, 'A3:CC103');
   symbols.forEach(function(symbol) {
     // account for bad symbols
     if (data[symbol]) {
@@ -142,7 +141,7 @@ function refreshStockCurrent() {
 }
 
 /**
- * Using the prices from StockCurrent, update the StockPurchased tab
+ * Using the prices from StockCurrent, update the StockPurchased tab to get gains and losses
  */
 function updateStockPurchased() {
   var done = false;
@@ -185,7 +184,7 @@ function updateStockPurchased() {
  * Update the dashboard with stock prices and returns
  */
 function updateStockDashboard() {
-  clearRange(sheetNames.dashboard, 'A5', 'F14');
+  clearRangeValues(sheetNames.dashboard, 'A5:H105');
   done = false;
   row = 3;
   var sData = {};
@@ -239,7 +238,31 @@ function updateStockDashboard() {
     div: 0
   };
 
-  row = 5;
+  // stock summary header
+  row = 2;
+  setCell(sheetNames.dashboard, 'A' + row, 'Stock Summary');
+  mergeHorizontal(sheetNames.dashboard, 'A' + row + ':H' + row);
+  setRangeFontSize(sheetNames.dashboard, 'A' + row, 14);
+  setRangeBackground(sheetNames.dashboard, 'A' + row, colors.dashboardHeaderBackground);
+  setRangeBorder(sheetNames.dashboard, 'A' + row, colors.dashboardOutlines);
+  setRangeHorizontalAlignment(sheetNames.dashboard, 'A' + row, 'center');
+  row++;
+
+  // row headers
+  setCell(sheetNames.dashboard, 'A' + row, 'Symbol');
+  setCell(sheetNames.dashboard, 'B' + row, 'Shares');
+  setCell(sheetNames.dashboard, 'C' + row, 'Price');
+  setCell(sheetNames.dashboard, 'D' + row, 'Cost Basis');
+  setCell(sheetNames.dashboard, 'E' + row, 'Value');
+  setCell(sheetNames.dashboard, 'F' + row, 'Dividends');
+  setCell(sheetNames.dashboard, 'G' + row, '$ Net');
+  setCell(sheetNames.dashboard, 'H' + row, '% Net');
+  setRangeHorizontalAlignment(sheetNames.dashboard, 'B' + row + ':H' + row, 'right');
+  setRangeBorder(sheetNames.dashboard, 'A' + row + ':H' + row, colors.dashboardOutlines);
+  setRangeBackground(sheetNames.dashboard, 'A' + row + ':H' + row, colors.dashboardSubheaderBackground);
+  row++;
+
+  var startRow = row;
   Object.keys(sData).forEach(function(item) {
     totals.cost += sData[item].cost;
     totals.value += sData[item].value;
@@ -251,13 +274,29 @@ function updateStockDashboard() {
     setCell(sheetNames.dashboard, 'D' + row, sData[item].cost);
     setCell(sheetNames.dashboard, 'E' + row, sData[item].value);
     setCell(sheetNames.dashboard, 'F' + row, sData[item].div);
+    setCell(sheetNames.dashboard, 'G' + row, (sData[item].value + sData[item].div) - sData[item].cost);
+    setCell(sheetNames.dashboard, 'H' + row, (sData[item].value + sData[item].div - sData[item].cost) / sData[item].cost);
+    setRangeBorder(sheetNames.dashboard, 'A' + row + ':' + 'H' + row, colors.dashboardOutlines);
     row++;
   });
 
-  // throw totals in
+  // add totals
   setCell(sheetNames.dashboard, 'D' + row, totals.cost);
   setCell(sheetNames.dashboard, 'E' + row, totals.value);
   setCell(sheetNames.dashboard, 'F' + row, totals.div);
+  setCell(sheetNames.dashboard, 'G' + row, (totals.value + totals.div) - totals.cost);
+  setCell(sheetNames.dashboard, 'H' + row, (totals.value + totals.div - totals.cost) / totals.cost);
+  setRangeBorder(sheetNames.dashboard, 'D' + row + ':' + 'H' + row, colors.dashboardOutlines);
+  setRangeBackground(sheetNames.dashboard, 'D' + row + ':' + 'H' + row, colors.dashboardSubheaderBackground);
+  setRangeWeight(sheetNames.dashboard, 'D' + row + ':' + 'H' + row, 'bold');
+
+  // set up/down colors
+  formatUpDown(sheetNames.dashboard, 'G' + startRow + ':H' + row);
+
+  // save context for use later
+  context.lastDashboardRowUsed = row;
+  context.stockTotal = totals;
+  context.stockDetail = sData;
 }
 
 /**
@@ -265,12 +304,12 @@ function updateStockDashboard() {
  * in the config tab
  */
 function refreshStockHistory() {
-  var symbols = getUniqueSymbols(sheetNames.config, 'D', 2);
+  var symbols = getUniqueSymbols(sheetNames.config, 'D', 4);
   var data = getHistoricalStockPrices(symbols, 250);
   var row = 3;
   var datesDone = false;
 
-  clearRange(sheetNames.stockHistory, 'A3', 'IQ103');
+  clearRangeValues(sheetNames.stockHistory, 'A3:IQ103');
   symbols.forEach(function(symbol) {
     // account for bad symbols
     if (data[symbol]) {
@@ -299,12 +338,12 @@ function refreshStockHistory() {
  * 5) After pulling all data, update the CryptoPurchased tab with updated returns
  */
 function refreshCryptoCurrent() {
-  var symbols = getUniqueSymbols(sheetNames.config, 'E', 2);
+  var symbols = getUniqueSymbols(sheetNames.config, 'E', 4);
   var data = getCryptoCurrent(symbols, 480);
   var row = 3;
   var datesDone = false;
 
-  clearRange(sheetNames.cryptoCurrent, 'A3', 'RN103');
+  clearRangeValues(sheetNames.cryptoCurrent, 'A3:RN103');
   symbols.forEach(function(symbol) {
     // account for bad symbols
     if (data[symbol]) {
@@ -371,7 +410,7 @@ function updateCryptoPurchased() {
  * Update the dashboard with Crypto prices and returns
  */
 function updateCryptoDashboard() {
-  clearRange(sheetNames.dashboard, 'J5', 'N14');
+  clearRangeValues(sheetNames.dashboard, 'J5:N14');
   done = false;
   row = 3;
   var sData = {};
@@ -403,34 +442,79 @@ function updateCryptoDashboard() {
     div: 0
   };
 
-  row = 5;
+  row = getFirstEmptyRow(sheetNames.dashboard, 5, 'D') + 1;
+
+  // crypto summary header
+  setCell(sheetNames.dashboard, 'A' + row, 'Crypto Summary');
+  mergeHorizontal(sheetNames.dashboard, 'A' + row + ':H' + row);
+  setRangeFontSize(sheetNames.dashboard, 'A' + row, 14);
+  setRangeBackground(sheetNames.dashboard, 'A' + row, colors.dashboardHeaderBackground);
+  setRangeBorder(sheetNames.dashboard, 'A' + row, colors.dashboardOutlines);
+  setRangeHorizontalAlignment(sheetNames.dashboard, 'A' + row, 'center');
+  row++;
+
+  // row headers
+  setCell(sheetNames.dashboard, 'A' + row, 'Symbol');
+  setCell(sheetNames.dashboard, 'B' + row, 'Shares');
+  setCell(sheetNames.dashboard, 'C' + row, 'Price');
+  setCell(sheetNames.dashboard, 'D' + row, 'Cost Basis');
+  setCell(sheetNames.dashboard, 'E' + row, 'Value');
+  setCell(sheetNames.dashboard, 'F' + row, 'Dividends');
+  setCell(sheetNames.dashboard, 'G' + row, '$ Net');
+  setCell(sheetNames.dashboard, 'H' + row, '% Net');
+  setRangeHorizontalAlignment(sheetNames.dashboard, 'B' + row + ':H' + row, 'right');
+  setRangeBorder(sheetNames.dashboard, 'A' + row + ':H' + row, colors.dashboardOutlines);
+  setRangeBackground(sheetNames.dashboard, 'A' + row + ':H' + row, colors.dashboardSubheaderBackground);
+  row++;
+
+  var startRow = row;
   Object.keys(sData).forEach(function(item) {
     totals.cost += sData[item].cost;
     totals.value += sData[item].value;
 
-    setCell(sheetNames.dashboard, 'J' + row, item);
-    setCell(sheetNames.dashboard, 'K' + row, sData[item].shares);
-    setCell(sheetNames.dashboard, 'L' + row, sData[item].price);
-    setCell(sheetNames.dashboard, 'M' + row, sData[item].cost);
-    setCell(sheetNames.dashboard, 'N' + row, sData[item].value);
+    setCell(sheetNames.dashboard, 'A' + row, item);
+    setCell(sheetNames.dashboard, 'B' + row, sData[item].shares);
+    setCell(sheetNames.dashboard, 'C' + row, sData[item].price);
+    setCell(sheetNames.dashboard, 'D' + row, sData[item].cost);
+    setCell(sheetNames.dashboard, 'E' + row, sData[item].value);
+    setCell(sheetNames.dashboard, 'F' + row, 0);
+    setCell(sheetNames.dashboard, 'G' + row, sData[item].value - sData[item].cost);
+    setCell(sheetNames.dashboard, 'H' + row, (sData[item].value - sData[item].cost) / sData[item].cost);
+    setRangeBorder(sheetNames.dashboard, 'A' + row + ':' + 'H' + row, colors.dashboardOutlines);
     row++;
   });
 
-  // throw totals in
-  setCell(sheetNames.dashboard, 'M' + row, totals.cost);
-  setCell(sheetNames.dashboard, 'N' + row, totals.value);
+  // add totals
+  setCell(sheetNames.dashboard, 'D' + row, totals.cost);
+  setCell(sheetNames.dashboard, 'E' + row, totals.value);
+  setCell(sheetNames.dashboard, 'F' + row, 0);
+  setCell(sheetNames.dashboard, 'G' + row, totals.value - totals.cost);
+  setCell(sheetNames.dashboard, 'H' + row, (totals.value - totals.cost) / totals.cost);
+
+  // format totals row
+  setRangeBorder(sheetNames.dashboard, 'D' + row + ':' + 'H' + row, colors.dashboardOutlines);
+  setRangeBackground(sheetNames.dashboard, 'D' + row + ':' + 'H' + row, colors.dashboardSubheaderBackground);
+  setRangeWeight(sheetNames.dashboard, 'D' + row + ':' + 'H' + row, 'bold');
+
+  // set up/down colors
+  formatUpDown(sheetNames.dashboard, 'G' + startRow + ':H' + row);
+
+  // save context for use later
+  context.lastDashboardRowUsed = row;
+  context.cryptoTotal = totals;
+  context.cryptoDetail = sData;
 }
 
 /**
  * Updates the CryptoHistory tab
  */
 function refreshCryptoHistory() {
-  var symbols = getUniqueSymbols(sheetNames.config, 'E', 2);
+  var symbols = getUniqueSymbols(sheetNames.config, 'E', 4);
   var data = getCryptoHistory(symbols, 365);
   var row = 3;
   var datesDone = false;
 
-  clearRange(sheetNames.cryptoHistory, 'A3', 'NC103');
+  clearRangeValues(sheetNames.cryptoHistory, 'A3:NC103');
   symbols.forEach(function(symbol) {
     // account for bad symbols
     if (data[symbol]) {
@@ -455,12 +539,13 @@ function refreshCryptoHistory() {
  * because we need to pass in the starting row after having refreshed the stock detail
  */
 function refreshDetail() {
-  var symbols = getUniqueSymbols(sheetNames.config, 'D', 2);
+  var symbols = getUniqueSymbols(sheetNames.config, 'D', 4);
   var row = 4;
 
   // hold latest prices for other calculations
   var latestPrices = {};
 
+  clearRangeValues(sheetNames.detail, 'A4:O104');
   symbols.forEach(function(symbol) {
     var cRow = 3;
     var done = false;
@@ -472,11 +557,12 @@ function refreshDetail() {
       if (cSymbol == symbol) {
         done = true;
         setCell(sheetNames.detail, 'A' + row, cSymbol);
+        setCell(sheetNames.detail, 'I' + row, cSymbol);
         var today = getCell(sheetNames.stockCurrent, 'B' + cRow);
         latestPrices[symbol] = today;
         var compare = getLastValueInRow(sheetNames.stockCurrent, 'B', cRow);
-        setCell(sheetNames.detail, 'B' + row, today - compare);
-        setCell(sheetNames.detail, 'C' + row, (today - compare)/compare);
+        setCell(sheetNames.detail, 'B' + row, (today - compare)/compare);
+        setCell(sheetNames.detail, 'J' + row, today - compare);
       }
       cRow++;
     }
@@ -494,56 +580,56 @@ function refreshDetail() {
         // week change
         var compare = getCell(sheetNames.stockHistory, 'F'+ hRow);
         if (compare) {
-          setCell(sheetNames.detail, 'D' + row, latestPrices[symbol] - compare);
-          setCell(sheetNames.detail, 'E' + row, (latestPrices[symbol] - compare)/compare);
+          setCell(sheetNames.detail, 'C' + row, (latestPrices[symbol] - compare)/compare);
+          setCell(sheetNames.detail, 'K' + row, latestPrices[symbol] - compare);
         }
         else {
-          setCell(sheetNames.detail, 'D' + row, 'n/a');
-          setCell(sheetNames.detail, 'E' + row, 'n/a');
+          setCell(sheetNames.detail, 'C' + row, 'n/a');
+          setCell(sheetNames.detail, 'K' + row, 'n/a');
         }
 
         // month change
         compare = getCell(sheetNames.stockHistory, 'V'+ hRow);
         if (compare) {
-          setCell(sheetNames.detail, 'F' + row, latestPrices[symbol] - compare);
-          setCell(sheetNames.detail, 'G' + row, (latestPrices[symbol] - compare)/compare);
+          setCell(sheetNames.detail, 'D' + row, (latestPrices[symbol] - compare)/compare);
+          setCell(sheetNames.detail, 'L' + row, latestPrices[symbol] - compare);
         }
         else {
-          setCell(sheetNames.detail, 'F' + row, 'n/a');
-          setCell(sheetNames.detail, 'G' + row, 'n/a');
+          setCell(sheetNames.detail, 'D' + row, 'n/a');
+          setCell(sheetNames.detail, 'L' + row, 'n/a');
         }
 
         // three month change
         compare = getCell(sheetNames.stockHistory, 'BM'+ hRow);
         if (compare) {
-          setCell(sheetNames.detail, 'H' + row, latestPrices[symbol] - compare);
-          setCell(sheetNames.detail, 'I' + row, (latestPrices[symbol] - compare)/compare);
+          setCell(sheetNames.detail, 'E' + row, (latestPrices[symbol] - compare)/compare);
+          setCell(sheetNames.detail, 'M' + row, latestPrices[symbol] - compare);
         }
         else {
-          setCell(sheetNames.detail, 'H' + row, 'n/a');
-          setCell(sheetNames.detail, 'I' + row, 'n/a');
+          setCell(sheetNames.detail, 'E' + row, 'n/a');
+          setCell(sheetNames.detail, 'M' + row, 'n/a');
         }
 
         // six month change
         compare = getCell(sheetNames.stockHistory, 'DV'+ hRow);
         if (compare) {
-          setCell(sheetNames.detail, 'J' + row, latestPrices[symbol] - compare);
-          setCell(sheetNames.detail, 'K' + row, (latestPrices[symbol] - compare)/compare);
+          setCell(sheetNames.detail, 'F' + row, (latestPrices[symbol] - compare)/compare);
+          setCell(sheetNames.detail, 'N' + row, latestPrices[symbol] - compare);
         }
         else {
-          setCell(sheetNames.detail, 'J' + row, 'n/a');
-          setCell(sheetNames.detail, 'K' + row, 'n/a');
+          setCell(sheetNames.detail, 'F' + row, 'n/a');
+          setCell(sheetNames.detail, 'N' + row, 'n/a');
         }
 
         // twelve month change
         compare = getCell(sheetNames.stockHistory, 'IQ'+ hRow);
         if (compare) {
-          setCell(sheetNames.detail, 'L' + row, latestPrices[symbol] - compare);
-          setCell(sheetNames.detail, 'M' + row, (latestPrices[symbol] - compare)/compare);
+          setCell(sheetNames.detail, 'G' + row, (latestPrices[symbol] - compare)/compare);
+          setCell(sheetNames.detail, 'O' + row, latestPrices[symbol] - compare);
         }
         else {
-          setCell(sheetNames.detail, 'L' + row, 'n/a');
-          setCell(sheetNames.detail, 'M' + row, 'n/a');
+          setCell(sheetNames.detail, 'G' + row, 'n/a');
+          setCell(sheetNames.detail, 'O' + row, 'n/a');
         }
 
         row++;
@@ -559,7 +645,7 @@ function refreshDetail() {
  * Refresh crypto data on the detail tab
  */
 function refreshCryptoDetail(row) {
-  var symbols = getUniqueSymbols(sheetNames.config, 'E', 2);
+  var symbols = getUniqueSymbols(sheetNames.config, 'E', 4);
 
   // hold latest prices for other calculations
   var latestPrices = {};
@@ -575,11 +661,12 @@ function refreshCryptoDetail(row) {
       if (cSymbol == symbol) {
         done = true;
         setCell(sheetNames.detail, 'A' + row, cSymbol);
+        setCell(sheetNames.detail, 'I' + row, cSymbol);
         var today = getCell(sheetNames.cryptoCurrent, 'B' + cRow);
         latestPrices[symbol] = today;
         var compare = getLastValueInRow(sheetNames.cryptoCurrent, 'B', cRow);
-        setCell(sheetNames.detail, 'B' + row, today - compare);
-        setCell(sheetNames.detail, 'C' + row, (today - compare)/compare);
+        setCell(sheetNames.detail, 'B' + row, (today - compare)/compare);
+        setCell(sheetNames.detail, 'J' + row, today - compare);
       }
       cRow++;
     }
@@ -597,56 +684,57 @@ function refreshCryptoDetail(row) {
         // week change
         var compare = getCell(sheetNames.cryptoHistory, 'H'+ hRow);
         if (compare) {
-          setCell(sheetNames.detail, 'D' + row, latestPrices[symbol] - compare);
-          setCell(sheetNames.detail, 'E' + row, (latestPrices[symbol] - compare)/compare);
+          setCell(sheetNames.detail, 'C' + row, (latestPrices[symbol] - compare)/compare);
+          setCell(sheetNames.detail, 'K' + row, latestPrices[symbol] - compare);
+
         }
         else {
-          setCell(sheetNames.detail, 'D' + row, 'n/a');
-          setCell(sheetNames.detail, 'E' + row, 'n/a');
+          setCell(sheetNames.detail, 'C' + row, 'n/a');
+          setCell(sheetNames.detail, 'K' + row, 'n/a');
         }
 
         // month change
         compare = getCell(sheetNames.cryptoHistory, 'AF'+ hRow);
         if (compare) {
-          setCell(sheetNames.detail, 'F' + row, latestPrices[symbol] - compare);
-          setCell(sheetNames.detail, 'G' + row, (latestPrices[symbol] - compare)/compare);
+          setCell(sheetNames.detail, 'D' + row, (latestPrices[symbol] - compare)/compare);
+          setCell(sheetNames.detail, 'L' + row, latestPrices[symbol] - compare);
         }
         else {
-          setCell(sheetNames.detail, 'F' + row, 'n/a');
-          setCell(sheetNames.detail, 'G' + row, 'n/a');
+          setCell(sheetNames.detail, 'D' + row, 'n/a');
+          setCell(sheetNames.detail, 'L' + row, 'n/a');
         }
 
         // three month change
         compare = getCell(sheetNames.cryptoHistory, 'CO'+ hRow);
         if (compare) {
-          setCell(sheetNames.detail, 'H' + row, latestPrices[symbol] - compare);
-          setCell(sheetNames.detail, 'I' + row, (latestPrices[symbol] - compare)/compare);
+          setCell(sheetNames.detail, 'E' + row, (latestPrices[symbol] - compare)/compare);
+          setCell(sheetNames.detail, 'M' + row, latestPrices[symbol] - compare);
         }
         else {
-          setCell(sheetNames.detail, 'H' + row, 'n/a');
-          setCell(sheetNames.detail, 'I' + row, 'n/a');
+          setCell(sheetNames.detail, 'E' + row, 'n/a');
+          setCell(sheetNames.detail, 'M' + row, 'n/a');
         }
 
         // six month change
         compare = getCell(sheetNames.cryptoHistory, 'EV'+ hRow);
         if (compare) {
-          setCell(sheetNames.detail, 'J' + row, latestPrices[symbol] - compare);
-          setCell(sheetNames.detail, 'K' + row, (latestPrices[symbol] - compare)/compare);
+          setCell(sheetNames.detail, 'F' + row, (latestPrices[symbol] - compare)/compare);
+          setCell(sheetNames.detail, 'N' + row, latestPrices[symbol] - compare);
         }
         else {
-          setCell(sheetNames.detail, 'J' + row, 'n/a');
-          setCell(sheetNames.detail, 'K' + row, 'n/a');
+          setCell(sheetNames.detail, 'F' + row, 'n/a');
+          setCell(sheetNames.detail, 'N' + row, 'n/a');
         }
 
         // twelve month change
         compare = getCell(sheetNames.cryptoHistory, 'NB'+ hRow);
         if (compare) {
-          setCell(sheetNames.detail, 'L' + row, latestPrices[symbol] - compare);
-          setCell(sheetNames.detail, 'M' + row, (latestPrices[symbol] - compare)/compare);
+          setCell(sheetNames.detail, 'G' + row, (latestPrices[symbol] - compare)/compare);
+          setCell(sheetNames.detail, 'O' + row, latestPrices[symbol] - compare);
         }
         else {
-          setCell(sheetNames.detail, 'L' + row, 'n/a');
-          setCell(sheetNames.detail, 'M' + row, 'n/a');
+          setCell(sheetNames.detail, 'G' + row, 'n/a');
+          setCell(sheetNames.detail, 'O' + row, 'n/a');
         }
 
         row++;
@@ -683,29 +771,34 @@ function refreshYearStockCharts() {
   var done = false;
   var row = 3;
 
-  var chartRow = 18;
+  setCell(sheetNames.dashboard, 'C' + (context.lastDashboardRowUsed + 2), 'One Year');
+  setRangeColor(sheetNames.dashboard, 'C' + (context.lastDashboardRowUsed + 2), colors.stockDayChart);
+  setRangeFontSize(sheetNames.dashboard, 'C' + (context.lastDashboardRowUsed + 2), 14);
+  setRangeHorizontalAlignment(sheetNames.dashboard, 'C' + (context.lastDashboardRowUsed + 2), 'center');
+
   var options = {
     title: '',
-    row: 18,
+    row: context.lastDashboardRowUsed + 3,
     column: 1,
     offsetLeft: 5,
     offsetTop: 5,
     width: 280,
     height: 180,
-    backgroundColor: 'dark gray',
-    colors: ['#0075c9']
+    backgroundColor: colors.dashboardBackground,
+    colors: [colors.stockDayChart],
+    titleColor: colors.chartTitleColor,
+    yAxisLabelColor: colors.chartYAxisLabel,
+    gridLineColor: colors.chartgridLineColor
   };
+
   while (!done) {
     var symbol = getCell(sheetNames.stockHistory, 'A' + row);
     if (symbol) {
       var range = historySheet.getRange('B' + row + ':IQ' + row);
       options.title = symbol;
-      areaChart(range, sheetNames.dashboard, options);
+      areaChart(sheetNames.dashboard, range, options);
       row++;
       options.row += 9;
-
-      //if (row == 5)
-      //  done = true;
     }
     else {
       done = true;
@@ -721,29 +814,33 @@ function refreshDayStockCharts() {
   var done = false;
   var row = 3;
 
-  var chartRow = 18;
+  setCell(sheetNames.dashboard, 'F' + (context.lastDashboardRowUsed + 2), 'Today');
+  setRangeColor(sheetNames.dashboard, 'F' + (context.lastDashboardRowUsed + 2), colors.stockHourChart);
+  setRangeFontSize(sheetNames.dashboard, 'F' + (context.lastDashboardRowUsed + 2), 14);
+  setRangeHorizontalAlignment(sheetNames.dashboard, 'F' + (context.lastDashboardRowUsed + 2), 'center');
+
   var options = {
     title: '',
-    row: 18,
+    row: context.lastDashboardRowUsed + 3,
     column: 5,
     offsetLeft: 0,
     offsetTop: 5,
     width: 280,
     height: 180,
-    backgroundColor: 'dark gray',
-    colors: ['#f06eaa']
+    backgroundColor: colors.dashboardBackground,
+    colors: [colors.stockHourChart],
+    titleColor: colors.chartTitleColor,
+    yAxisLabelColor: colors.chartYAxisLabel,
+    gridLineColor: colors.chartgridLineColor
   };
   while (!done) {
     var symbol = getCell(sheetNames.stockCurrent, 'A' + row);
     if (symbol) {
       var range = currentSheet.getRange('B' + row + ':CC' + row);
       options.title = symbol;
-      areaChart(range, sheetNames.dashboard, options);
+      areaChart(sheetNames.dashboard, range, options);
       row++;
       options.row += 9;
-
-      //if (row == 5)
-      //  done = true;
     }
     else {
       done = true;
@@ -759,24 +856,31 @@ function refreshYearCryptoCharts() {
   var done = false;
   var row = 3;
 
-  var chartRow = 18;
+  setCell(sheetNames.dashboard, 'L' + (context.lastDashboardRowUsed + 2), 'One Year');
+  setRangeColor(sheetNames.dashboard, 'L' + (context.lastDashboardRowUsed + 2), colors.cryptoDayChart);
+  setRangeFontSize(sheetNames.dashboard, 'L' + (context.lastDashboardRowUsed + 2), 14);
+  setRangeHorizontalAlignment(sheetNames.dashboard, 'L' + (context.lastDashboardRowUsed + 2), 'center');
+
   var options = {
     title: '',
-    row: 18,
+    row: context.lastDashboardRowUsed + 3,
     column: 10,
     offsetLeft: 5,
     offsetTop: 5,
     width: 280,
     height: 180,
-    backgroundColor: 'dark gray',
-    colors: ['#00a6b6']
+    backgroundColor: colors.dashboardBackground,
+    colors: [colors.cryptoDayChart],
+    titleColor: colors.chartTitleColor,
+    yAxisLabelColor: colors.chartYAxisLabel,
+    gridLineColor: colors.chartgridLineColor
   };
   while (!done) {
     var symbol = getCell(sheetNames.cryptoHistory, 'A' + row);
     if (symbol) {
       var range = historySheet.getRange('B' + row + ':NC' + row);
       options.title = symbol;
-      areaChart(range, sheetNames.dashboard, options);
+      areaChart(sheetNames.dashboard, range, options);
       row++;
       options.row += 9;
     }
@@ -794,24 +898,31 @@ function refreshDayCryptoCharts() {
   var done = false;
   var row = 3;
 
-  var chartRow = 18;
+  setCell(sheetNames.dashboard, 'O' + (context.lastDashboardRowUsed + 2), 'Today');
+  setRangeColor(sheetNames.dashboard, 'O' + (context.lastDashboardRowUsed + 2), colors.cryptoHourChart);
+  setRangeFontSize(sheetNames.dashboard, 'O' + (context.lastDashboardRowUsed + 2), 14);
+  setRangeHorizontalAlignment(sheetNames.dashboard, 'O' + (context.lastDashboardRowUsed + 2), 'center');
+
   var options = {
     title: '',
-    row: 18,
+    row: context.lastDashboardRowUsed + 3,
     column: 14,
     offsetLeft: 5,
     offsetTop: 5,
     width: 280,
     height: 180,
-    backgroundColor: 'dark gray',
-    colors: ['#9157d8']
+    backgroundColor: colors.dashboardBackground,
+    colors: [colors.cryptoHourChart],
+    titleColor: colors.chartTitleColor,
+    yAxisLabelColor: colors.chartYAxisLabel,
+    gridLineColor: colors.chartgridLineColor
   };
   while (!done) {
     var symbol = getCell(sheetNames.cryptoCurrent, 'A' + row);
     if (symbol) {
       var range = historySheet.getRange('B' + row + ':RN' + row);
       options.title = symbol;
-      areaChart(range, sheetNames.dashboard, options);
+      areaChart(sheetNames.dashboard, range, options);
       row++;
       options.row += 9;
     }

@@ -1,5 +1,11 @@
 /**
+ * TICKER v1.0
+ *
  * This script is a library for rendering charts for the Ticker worksheet
+ *
+ * Based on the following docs:
+ *   - https://developers.google.com/apps-script/reference/spreadsheet/embedded-area-chart-builder
+ *   - https://developers.google.com/chart/interactive/docs/gallery/areachart#configuration-options
  *
  * Copyright 2019 Chris Hundley
  *
@@ -21,6 +27,7 @@
 
 /**
  * Remove any existing charts from a worksheet (tab)
+ * @param {string} sheetName - the name of the sheet as labeled in the tabs at the bottom of the view
  */
 function removeChartsFromSheet(sheetName) {
   var sheet = getSheetByName(sheetName);
@@ -31,9 +38,25 @@ function removeChartsFromSheet(sheetName) {
 }
 
 /**
- * Generate an area chart with optional parameters
+ * Generate an area chart with optional parameters. NOTE: in this case we are transposing rows and columns due to the shape
+ * of the data on our worksheet
+ * @param {string} sheetName - the sheet to render the chart on
+ * @param {string} range - the range containing the data in A1 Notation, eg 'A8:F16'
+ * @param {Object} options - a set of options to manipulate the look of the chart
+ * @param {string} options.title - a title to give the chart, default none
+ * @param {number} options.row - the row number (1-based) for the top-left corner of the chart, default 1
+ * @param {number} options.column - the column number (1-based) for the top-left corner of the chart, eg column B is 2, default 1
+ * @param {string} options.offsetLeft - offset (in pixels) to move the chart right from the starting point, default 0
+ * @param {string} options.offsetTop - offset (in pixels) to move the chart down from the starting point, default 0
+ * @param {string} options.width - width of the chart in pixels, default 300
+ * @param {string} options.height - height of the chart in pixels, default 200
+ * @param {Array[string]} options.colors - an array of colors to use for the chart series, eg ['#ff0000', '#00ff00'], default GSheet theme colors
+ * @param {string} options.backgroundColor - background color of the chart, eg 'white' or '#ff0000', default 'white'
+ * @param {string} options.titleColor - title color of the chart, default 'black'
+ * @param {string} options.yAxisLabelColor - color of the y-axis labels, default '#666666'
+ * @param {string} options.gridLineColor - color of the grid lines, default '#cccccc'
  */
-function areaChart(range, sheetName, options) {
+function areaChart(sheetName, range, options) {
   var title = options.title || '';
   var row = options.row || 1;
   var column = options.column || 1;
@@ -43,12 +66,14 @@ function areaChart(range, sheetName, options) {
   var height = options.height || 200;
   var colors = options.colors || [];
   var backgroundColor = options.backgroundColor || 'white';
-  var titleColor = options.titleColor || '#ffffff';
-  var yAxisLabelColor = options.yAxisLabelColor || '#bbbbbb';
-  var gridLineColor = options.gridLineColor || '#666666';
+  var titleColor = options.titleColor || 'black';
+  var yAxisLabelColor = options.yAxisLabelColor || '#666666';
+  var gridLineColor = options.gridLineColor || '#cccccc';
 
   var sheet = getSheetByName(sheetName);
   var cutoff = getScaleCutoff(getMinValueInRange(range));
+
+  // if the data set is all over $1000, remove the pennies for better chart formatting
   if (cutoff >= 1000) {
     formatRange(range, '$#,###');
   }

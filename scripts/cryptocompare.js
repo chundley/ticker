@@ -24,12 +24,16 @@
 
 
 /**
+ * @private
  * Make a request to the Crypto Compare API
+ * @param {string} path - the url path of the request
+ * @param {Object} params - key/value pairs to be mapped as query string parameters on the requst
+ * @return {Object} - the resulting data set from the request
  */
 function cryptoRequest(path, params) {
   var endpoint = 'https://min-api.cryptocompare.com';
   var headers = {
-    'Authorization': 'Apikey ' + getCell('Config', 'B3')
+    'Authorization': 'Apikey ' + getCell('Config', 'B6')
   }
 
   var options = {
@@ -39,17 +43,11 @@ function cryptoRequest(path, params) {
 
   var url = endpoint + path;
   if (params) {
-    if (params.qs) {
-      var kv = [];
-      for (var k in params.qs) {
-        kv.push(k + '=' + params.qs[k]);
-      }
-      url += '?' + kv.join('&');
-      delete params.qs
-    }
+    var kv = [];
     for (var k in params) {
-      options[k] = params[k];
+      kv.push(k + '=' + encodeURIComponent(params[k]));
     }
+    url += '?' + kv.join('&');
   }
 
   var response = UrlFetchApp.fetch(url, options);
@@ -64,33 +62,41 @@ function cryptoRequest(path, params) {
 }
 
 /**
- * Get current price for an array of Crypto symbols
- */
-function getCryptoPrices(symbols) {
-  var params = {
-    qs: {
-      fsyms: symbols.join(','),
-      tsyms: 'USD'
-    }
-  };
-
-  var resp = cryptoRequest('/data/pricemulti', params);
-  debugMessage('CryptoCompare /data/pricemulti', JSON.stringify(resp).substring(0,255));
-  return resp;
-}
-
-/**
- * Get crypto prices in one-minute interval for x number of data points
+ * Get crypto prices in one-minute interval for x number of data points. We can only request one symbol
+ * at a time, so this function will make multiple API requests and combine the data. When requesting
+ * https://min-api.cryptocompare.com/documentation?key=Historical&cat=dataHistominute
+ * @param {string} symbols - an array of symbols to request pricing on, eg ['BTC','ETH','LTC']
+ * @param {number} limit - the number of intervals to request, eg 480 for 8 hours of market data (max=600)
+ * @return {Object} - the resulting data set
+ * @example
+ * var data = getHistoricalStockPrices(['BTC','ETH'], 480);
+ * // returns
+ * {
+ *   "BTC": [
+ *    {
+ *      time: 1561144080
+ *      close: 7788.24
+ *      high: 7792.6
+ *      low: 7788.24
+ *      open: 7792.6
+ *      volumefrom: 0.212
+ *      volumeto: 1652.3
+ *    }, // 480 total values
+ *  ],
+ *  "ETH": [...]
+ * }
  */
 function getCryptoCurrent(symbols, limit) {
+  if (limit > 600) {
+    limit = 600;
+  }
+
   var results = {};
   symbols.forEach(function(symbol) {
     var params = {
-      qs: {
-        fsym: symbol,
-        tsym: 'USD',
-        limit: limit
-      }
+      fsym: symbol,
+      tsym: 'USD',
+      limit: limit
     };
 
     var resp = cryptoRequest('/data/histominute', params);
@@ -102,16 +108,39 @@ function getCryptoCurrent(symbols, limit) {
 
 /**
  * Get daily closing price for crypto symbols for x days
+ * https://min-api.cryptocompare.com/documentation?key=Historical&cat=dataHistoday
+ * @param {string} symbols - an array of symbols to request pricing on, eg ['BTC','ETH','LTC']
+ * @param {number} limit - the number of intervals to request, eg 365 for 1 year of market data (max=600)
+ * @return {Object} - the resulting data set
+ * @example
+ * var data = getHistoricalStockPrices(['BTC','ETH'], 365);
+ * // returns
+ * {
+ *   "BTC": [
+ *    {
+ *      time: 1561144080
+ *      close: 7788.24
+ *      high: 7792.6
+ *      low: 7788.24
+ *      open: 7792.6
+ *      volumefrom: 0.212
+ *      volumeto: 1652.3
+ *    }, // 365 total values
+ *  ],
+ *  "ETH": [...]
+ * }
  */
 function getCryptoHistory(symbols, limit) {
+  if (limit > 600) {
+    limit = 600;
+  }
+
   var results = {};
   symbols.forEach(function(symbol) {
     var params = {
-      qs: {
-        fsym: symbol,
-        tsym: 'USD',
-        limit: limit
-      }
+      fsym: symbol,
+      tsym: 'USD',
+      limit: limit
     };
 
     var resp = cryptoRequest('/data/histoday', params);

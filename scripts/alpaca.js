@@ -1,7 +1,9 @@
 /**
- * Interface to the Alpaca API for Google Sheets implementation
+ * TICKER v1.0
  *
- * https://docs.alpaca.markets/api-documentation/
+ * Interface to the Alpaca API
+ *
+ * Docs - https://docs.alpaca.markets/api-documentation/
  *
  * Rate limit: 200 requests per minute
  *
@@ -24,28 +26,45 @@
 
 
 /**
- * Standard request to the Alpaca API
+ * @private
+ * Request to the standard Alpaca API endpoints
+ * https://docs.alpaca.markets/api-documentation/
+ * @param {string} path - the url path of the request
+ * @param {Object} params - key/value pairs to be mapped as query string parameters on the requst
+ * @return {Object} - the resulting data set from the request
+ * @example
+ * var data = alpacaApiRequest('/v1/assets/' + symbol);
  */
 function alpacaApiRequest(path, params) {
   return alpacaRequest('https://api.alpaca.markets', path, params);
 }
 
 /**
- * Request to the Alpaca data API
- *
+ * @private
+ * Request to the Alpaca data API endpoints
  * https://docs.alpaca.markets/api-documentation/web-api/market-data/bars/
+ * @param {string} path - the url path of the request
+ * @param {Object} params - key/value pairs to be mapped as query string parameters on the requst
+ * @return {Object} - the resulting data set from the request
+ * @example
+ * var data = alpacaDataRequest('/v1/bars/5Min', { symbols: 'MSFT,GOOG', limit: 100});
  */
 function alpacaDataRequest(path, params) {
   return alpacaRequest('https://data.alpaca.markets', path, params);
 }
 
 /**
- * Execute request to one of the Alpaca APIs
+ * @private
+ * Execute request to one of the Alpaca APIs. We've abstracted away the particular endpoint and methods of calling to make the public
+ * functions easier to understand and use
+ * @param {string} path - the url path of the request
+ * @param {Object} params - key/value pairs to be mapped as query string parameters on the requst
+ * @return {Object} - the resulting data set from the request
  */
 function alpacaRequest(endpoint, path, params) {
   var headers = {
-    'APCA-API-KEY-ID': getCell('Config', 'B1'),
-    'APCA-API-SECRET-KEY': getCell('Config', 'B2')
+    'APCA-API-KEY-ID': getCell('Config', 'B4'),
+    'APCA-API-SECRET-KEY': getCell('Config', 'B5')
   };
 
   var options = {
@@ -55,17 +74,11 @@ function alpacaRequest(endpoint, path, params) {
 
   var url = endpoint + path;
   if (params) {
-    if (params.qs) {
-      var kv = [];
-      for (var k in params.qs) {
-        kv.push(k + '=' + encodeURIComponent(params.qs[k]));
-      }
-      url += '?' + kv.join('&');
-      delete params.qs
-    }
+    var kv = [];
     for (var k in params) {
-      options[k] = params[k];
+      kv.push(k + '=' + encodeURIComponent(params[k]));
     }
+    url += '?' + kv.join('&');
   }
 
   var response = UrlFetchApp.fetch(url, options);
@@ -81,21 +94,54 @@ function alpacaRequest(endpoint, path, params) {
 
 /**
  * Gets basic data about a stock
+ * https://docs.alpaca.markets/api-documentation/web-api/assets/#get-an-asset
+ * @param {string} symbol - the symbol of the stock/asset to retrieve
+ * @return {Object} - the result
+ * @example
+ * var data = getAsset('AAPL');
+ * // returns
+ * {
+ *   id: "904837e3-3b76-47ec-b432-046db621571b",
+ *   asset_class: "us_equity",
+ *   exchange: "NASDAQ",
+ *   symbol: "AAPL",
+ *   status: "active",
+ *   tradable: true
+ * }
  */
 function getAsset(symbol) {
   var resp = alpacaApiRequest('/v1/assets/' + symbol);
-  return JSON.stringify(resp);
+  debugMessage('Alpaca /v1/assets/', JSON.stringify(resp).substring(0,255));
+  return resp;
 }
 
 /**
  * Gets daily closing price for a set of symbols for x number of days
+ * https://docs.alpaca.markets/api-documentation/web-api/market-data/bars/
+ * @param {string} symbols - an array of symbols to request pricing on, eg ['AAPL','MSFT','GOOG']
+ * @param {number} days - the number of days to request, eg 90 for 90 days of market data
+ * @return {Object} - the resulting data set
+ * @example
+ * var data = getHistoricalStockPrices(['AAPL','MSFT'], 90);
+ * // returns
+ * {
+ *   "AAPL": [
+ *    {
+ *      "t": 1544129220,
+ *      "o": 172.26,
+ *      "h": 172.3,
+ *      "l": 172.16,
+ *      "c": 172.18,
+ *      "v": 3892,
+ *    }, // 90 total values
+ *  ],
+ *  "MSFT": [...]
+ * }
  */
 function getHistoricalStockPrices(symbols, days) {
   var params = {
-    qs: {
-      symbols: symbols.join(','),
-      limit: days
-    }
+    symbols: symbols.join(','),
+    limit: days
   };
 
   var resp = alpacaDataRequest('/v1/bars/day', params);
@@ -105,13 +151,31 @@ function getHistoricalStockPrices(symbols, days) {
 
 /**
  * Get stock price at five minute intervals for a set of symbols for x number of data points
+ * https://docs.alpaca.markets/api-documentation/web-api/market-data/bars/
+ * @param {string} symbols - an array of symbols to request pricing on, eg ['AAPL','MSFT','GOOG']
+ * @param {number} count - the number of data points to request, eg 288 for 1 day of market data
+ * @return {Object} - the resulting data set
+ * @example
+ * var data = getHistoricalStockPrices(['AAPL','MSFT'], 288);
+ * // returns
+ * {
+ *   "AAPL": [
+ *    {
+ *      "t": 1544129220,
+ *      "o": 172.26,
+ *      "h": 172.3,
+ *      "l": 172.16,
+ *      "c": 172.18,
+ *      "v": 3892,
+ *    }, // 288 total values
+ *  ],
+ *  "MSFT": [...]
+ * }
  */
 function getCurrentStockPrices(symbols, count) {
   var params = {
-    qs: {
-      symbols: symbols.join(','),
-      limit: count
-    }
+    symbols: symbols.join(','),
+    limit: count
   };
 
   var resp = alpacaDataRequest('/v1/bars/5Min', params);

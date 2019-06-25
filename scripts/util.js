@@ -1,5 +1,12 @@
 /**
- * Utility functions for Google sheets stock tracker
+ * TICKER v1.0
+ *
+ * Utility functions for managing/manipulating data in a Google sheet
+ *
+ * Based on the following docs:
+ *   - https://developers.google.com/apps-script/reference/spreadsheet/sheet
+ *   - https://developers.google.com/apps-script/reference/spreadsheet/range
+ *
  *
  * Copyright 2019 Chris Hundley
  *
@@ -24,6 +31,8 @@ var debugRow = 2;
 
 /**
  * Gets a sheet by name
+ * @param {string} sheetName - the name of the sheet as labeled in the tabs at the bottom of the view
+ * @return {Sheet} - see https://developers.google.com/apps-script/reference/spreadsheet/sheet
  */
 function getSheetByName(sheetName) {
   if (!sheetCache[sheetName]) {
@@ -34,6 +43,9 @@ function getSheetByName(sheetName) {
 
 /**
  * Given a sheet name and cell, return the value in that cell
+ * @param {string} sheetName - the sheet containing the cell
+ * @param {string} cell - the cell in A1 Notation, eg 'B7'
+ * @returns {string|number|date} - the string, number, or date in the cell
  */
 function getCell(sheetName, cell) {
   return getSheetByName(sheetName).getRange(cell).getValue();
@@ -41,23 +53,39 @@ function getCell(sheetName, cell) {
 
 /**
  * Given a sheet name, cell, and value, set the value in that cell
+ * @param {string} sheetName - the sheet containing the cell
+ * @param {string} cell - the cell in A1 Notation, eg 'B7'
+ * @param {string|number|date} value - the value to put in the cell
  */
 function setCell(sheetName, cell, value) {
   getSheetByName(sheetName).getRange(cell).setValue(value);
 }
 
 /**
- * Given a sheet name, start cell, and end cell, set the value in that cell to blank
+ * Given a sheet name and range, remove the values in the range
+ * @param {string} sheetName - the sheet containing the range to clear
+ * @param {string} range - the range in A1 Notation, eg 'A8:F16'
  */
-function clearRange(sheetName, start, end) {
-  getSheetByName(sheetName).getRange(sheetName + '!' + start + ':' + end).setValue('');
+function clearRangeValues(sheetName, range) {
+  getSheetByName(sheetName).getRange(range).setValue('');
+}
+
+/**
+ * Given a sheet name and range, remove all formatting
+ * @param {string} sheetName - the sheet containing the range to clear
+ * @param {string} range - the range in A1 Notation, eg 'A8:F16'
+ */
+function clearRangeFormat(sheetName, range) {
+  getSheetByName(sheetName).getRange(range).clearFormat();
 }
 
 /**
  * Gets the next column in sequence, works up to column ZZ (676 columns)
+ * @param {string} currentColumn - the current column
+ * @returns {string} - the next column (to the right of the column passed in)
  *
- * Examples:  Pass in  'C' --> 'D'
- *            Pass in 'AZ' --> 'BA'
+ * Examples:  getNextColumn('C')  --> 'D'
+ *            getNextColumn('AZ') --> 'BA'
  */
 function getNextColumn(currentColumn) {
   var nextColumn = '';
@@ -80,7 +108,10 @@ function getNextColumn(currentColumn) {
 }
 
 /**
- * Given a sheet, starting column, and row, determine the last valid value at the end of the row
+ * Given a sheet, starting column, and row, determine the last non-blank value at the end of the row
+ * @param {string} sheetName - the sheet containing the row to check
+ * @param {string} startColumn - the column to start searching from
+ * @param {string} row - the row to check for the first non-blank value
  */
 function getLastValueInRow(sheetName, startColumn, row) {
   var done = false;
@@ -99,7 +130,30 @@ function getLastValueInRow(sheetName, startColumn, row) {
 }
 
 /**
+ * Given a sheet, starting row, and column, determine the first row that doesn't have a value
+ * @param {string} sheetName - the sheet containing the column to check
+ * @param {string} startRow - the row to start searching from
+ * @param {string} column - the column to check for the first non-blank value
+ */
+function getFirstEmptyRow(sheetName, startRow, column) {
+  var done = false;
+  var retRow = startRow;
+  while (!done) {
+    var val = getCell(sheetName, column + retRow);
+    if (val) {
+      retRow++;
+    }
+    else {
+      done = true;
+    }
+  }
+  return retRow;
+}
+
+/**
  * Given a range, find the minimum value in the range. Used for setting minimum range on chart vertical axis
+ * @param {Range} range - a range of cells to search and determine the minimum value
+ * @returns {number} - the minimum value found in the range of cells
  */
 function getMinValueInRange(range) {
   var minVal = 100000000;
@@ -119,7 +173,10 @@ function getMinValueInRange(range) {
 
 /**
  * Attempts to select a minimum y-axis scale cutoff appropriate for the data so the chart is
- * readable. Without doing this prices would not show much variance, especially the daily data
+ * readable. Without doing this prices would not show much variance, especially the daily data. Works together
+ * with the getMinValueInRange function to help format the y-axis of charts
+ * @param {number} value - the numerical value representing the minimum data point in a series
+ * @returns {number} - the scale cutoff value deteremined to be the best choice
  */
 function getScaleCutoff(value) {
   if (value < .1) {
@@ -150,26 +207,136 @@ function getScaleCutoff(value) {
 
 /**
  * Given a range of cells, format the numbers in that range based on passed in format
+ * @param {string} range - the range in A1 Notation, eg 'A8:F16'
+ * @param {string} format - the format desired, eg '#,###.##'
  */
 function formatRange(range, format) {
   range.setNumberFormat(format);
 }
 
 /**
- * Toast alert
+ * Given a sheet, range, and color, create full borders including internal in the color specified
+ * @param {string} sheetName - the sheet containing the range to format
+ * @param {string} range - the range in A1 Notation, eg 'A8:F16'
+ * @param {string} color - the color for the border, eg 'red' or '#ff0000'
+ */
+function setRangeBorder(sheetName, range, color) {
+  getSheetByName(sheetName).getRange(range).setBorder(true, true, true, true, true, true, color, SpreadsheetApp.BorderStyle.SOLID);
+}
+
+/**
+ * Clear borders in the passed in range
+ * @param {string} sheetName - the sheet containing the range to format
+ * @param {string} range - the range in A1 Notation, eg 'A8:F16'
+ */
+function clearRangeBorder(sheetName, range) {
+  getSheetByName(sheetName).getRange(range).setBorder(false, false, false, false, false, false, null, null);
+}
+
+/**
+ * Set the font size of the specified range
+ * @param {string} sheetName - the sheet containing the range to format
+ * @param {string} range - the range in A1 Notation, eg 'A8:F16'
+ * @param {string} size - the font size in points, eg 14
+ */
+function setRangeFontSize(sheetName, range, size) {
+  getSheetByName(sheetName).getRange(range).setFontSize(size);
+}
+
+/**
+ * Set the font weight of the specified range. Possible weights are 'bold', 'normal', or null (to reset)
+ * @param {string} sheetName - the sheet containing the range to format
+ * @param {string} range - the range in A1 Notation, eg 'A8:F16'
+ * @param {string} weight - the weight to set, eg 'bold'
+ */
+function setRangeWeight(sheetName, range, weight) {
+  getSheetByName(sheetName).getRange(range).setFontWeight(weight);
+}
+
+/**
+ * Set the horizontal text alignment of the specified range. Possible values are 'left', 'center', 'right', or null (to reset)
+ * @param {string} sheetName - the sheet containing the range to format
+ * @param {string} range - the range in A1 Notation, eg 'A8:F16'
+ * @param {string} alignment - the alignment to set, eg 'center'
+ */
+function setRangeHorizontalAlignment(sheetName, range, alignment) {
+  getSheetByName(sheetName).getRange(range).setHorizontalAlignment(alignment);
+}
+
+/**
+ * Set the font color of the specified range
+ * @param {string} sheetName - the sheet containing the range to format
+ * @param {string} range - the range in A1 Notation, eg 'A8:F16'
+ * @param {string} color - the color to set, eg 'red' or '#ff0000'
+ */
+function setRangeColor(sheetName, range, color) {
+  getSheetByName(sheetName).getRange(range).setFontColor(color);
+}
+
+/**
+ * Set the cell background color of the specified range
+ * @param {string} sheetName - the sheet containing the range to format
+ * @param {string} range - the range in A1 Notation, eg 'A8:F16'
+ * @param {string} color - the color to set, eg 'red' or '#ff0000'
+ */
+function setRangeBackground(sheetName, range, color) {
+  getSheetByName(sheetName).getRange(range).setBackgroundColor(color);
+}
+
+/**
+ * Merge the specified range of cells horizontally
+ * @param {string} sheetName - the sheet containing the range to merge
+ * @param {string} range - the range in A1 Notation, eg 'B4:B10'
+ */
+function mergeHorizontal(sheetName, range) {
+  getSheetByName(sheetName).getRange(range).mergeAcross();
+}
+
+/**
+ * Formats the cells in a range with up (green) or down (red) formatting to show net gain or loss in assets
+ * @param {string} sheetName - the sheet containing the range to format
+ * @param {string} range - the range in A1 Notation, eg 'B4:B10'
+ */
+function formatUpDown(sheetName, range) {
+  var rangeLocal = getSheetByName(sheetName).getRange(range);
+  var rows = rangeLocal.getNumRows();
+  var cols = rangeLocal.getNumColumns();
+
+  for (var r=1; r<= rows; r++) {
+    for (var c=1; c<= cols; c++) {
+      val = rangeLocal.getCell(r, c).getValue();
+      if (val && val < 0) {
+        setRangeColor(sheetName, rangeLocal.getCell(r, c).getA1Notation(), colors.down);
+      }
+      else {
+        setRangeColor(sheetName, rangeLocal.getCell(r, c).getA1Notation(), colors.up);
+      }
+    }
+  }
+}
+
+/**
+ * GSheet toast alert (the little box that pops up in the lower-right corner). Whenever this is called the new
+ * message immediately displays and replaces the message already there even if the timeout isn't reached yet
+ * @param {string} message - the message to display
+ * @param {string} title - the title of the popup
+ * @param {number} timeout - how many seconds to show the popup. Optional, defaults to 8 seconds
  */
 function alert(message, title, timeout) {
   if (!title) {
     title = 'Ticker status';
   }
   if (!timeout) {
-    timeout = 5;
+    timeout = 8;
   }
   SpreadsheetApp.getActiveSpreadsheet().toast(message, title, timeout);
 }
 
 /**
- * Add a debug message to the debug tab
+ * Add a debug message to the debug tab - effectively raw output from API requests to help troubleshoot when
+ * something is failing
+ * @param {string} call - the API call that was made
+ * @param {string} message - the message to log in the debug sheet
  */
 function debugMessage(call, message) {
   setCell(sheetNames.debug, 'A' + debugRow, call);

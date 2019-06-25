@@ -1,7 +1,7 @@
 /**
- * Constants used throughout the Ticker scripts
+ * TICKER v1.0
  *
- * https://docs.alpaca.markets/api-documentation/
+ * Constants used throughout the Ticker scripts
  *
  * Copyright 2019 Chris Hundley
  *
@@ -21,6 +21,9 @@
  */
 
 
+/**
+ * Name of sheets in the workbook
+ */
 var sheetNames = {
   config: 'Config',
   dashboard: 'Dashboard',
@@ -34,5 +37,25 @@ var sheetNames = {
   cryptoHistory: 'CryptoHistory',
   debug: 'Debug'
 };
+
+/**
+ * Colors used for rendering data and charts
+ */
+var colors = {
+  dashboardText: '#ffffff',
+  dashboardHeaderBackground: '#292929',
+  dashboardSubheaderBackground: '#333333',
+  dashboardBackground: '#434343',
+  dashboardOutlines: '#888888',
+  up: '#00dd00',
+  down: '#e09595',
+  stockDayChart: '#0075c9',
+  stockHourChart: '#f06eaa',
+  cryptoDayChart: '#00a6b6',
+  cryptoHourChart: '#9157d8',
+  chartYAxisLabel: '#bbbbbb',
+  chartgridLineColor: '#666666',
+  chartTitleColor: '#ffffff'
+}
 
 // TODO: Add all the column limits/constants so they aren't hard-coded all over the place
