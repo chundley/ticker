@@ -3,6 +3,10 @@ This project started as a small utility to track investments in the Stock Market
 
 It turned into an experiment to learn some programmatic interaction with [Google Sheets](https://www.google.com/sheets/about/) and dynamically loading to support long-term investing and refreshing.
 
+![Dashboard Summary](img/dashboard-summary.png)
+
+![Dashboard Stock Charts](img/dashboard-stockcharts.png)
+
 ### Requirements
 Out of the box the worksheet supports integrations with two different platforms: Alpaca for stock market data and CryptoCompare for crypto prices. Data is pulled on-demand and refreshes the underlying data sheets which in turn triggers a dashboard update.
 
@@ -24,8 +28,13 @@ API docs: [https://min-api.cryptocompare.com/](https://min-api.cryptocompare.com
 
 Free edition rate limits: 50/sec | 2500/minute | 25K/hour | 100K/month
 
+#### Permissions
+When you run the script the first time, you'll receive a warning about running scripts in your worksheet. You'll have to grant permissions for the script to run in your Google account.
+
+All code is accessible via the menu: **Tools --> Script Editor**
+
 ### Project structure
-The project is a Google sheet with javascript responsible for API requests and refreshing various tabs to support the dashboard. It's meant to be an extensible template you can modify to suit your needs.
+The project is a Google sheet with Javascript responsible for API requests and refreshing various tabs to support the dashboard. It's meant to be an extensible template you can modify to suit your needs.
 
 To manage changes and pull requests I'll create versions of the worksheet and tag release versions of the Javascript source to keep things in sync. The tagged releases will contain a link to the updated worksheet. The worksheet will be read-only since it won't contain API keys and can't be refreshed.
 
@@ -75,11 +84,16 @@ This tab tracks the daily closing price for all crypto symbols in the config tab
 #### Debug
 To help troubleshoot problems, the debug tab logs all API calls and the results of the call. Each time the worksheet is refreshed the debug tab is cleared and each call is logged sequentially.
 
+### Contributions and Issues
+If you feel like fixing a bug or adding some logic, clone and/or fork this repository and submit pull requests.
+
+Issues can be added to the issues tab of this repo.
+
 ### License
 Copyright 2019 Chris Hundley
 
-MIT LICENSE
- Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the 'Software'), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+##### MIT LICENSE
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the 'Software'), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
 The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
