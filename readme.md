@@ -9,8 +9,20 @@ Out of the box the worksheet supports integrations with two different platforms:
 If you set up accounts at both of these default vendors you'll be able to use the worksheet as-is. If you have a different API you'll need to do some work on the requests and data model.
 
 #### Alpaca
+Alpaca is a robust API that supports not only market pricing data, but both fake and real API-based trading.
+
+* Web site: [https://alpaca.markets](https://alpaca.markets/)
+* API docs: [https://docs.alpaca.markets/api-documentation/web-api/](https://docs.alpaca.markets/api-documentation/web-api/)
+
+It's free and the only rate limit is 200 requests per minute. This worksheet only makes two API requests every time it's refreshed.
 
 #### CryptoCompare
+CryptoCompare has a free version that provides more than enough data and rate limits for a small project like this.
+
+Web site: [https://www.cryptocompare.com/](https://www.cryptocompare.com/)
+API docs: [https://min-api.cryptocompare.com/](https://min-api.cryptocompare.com/)
+
+Free edition rate limits: 50/sec | 2500/minute | 25K/hour | 100K/month
 
 ### Project structure
 The project is a Google sheet with javascript responsible for API requests and refreshing various tabs to support the dashboard. It's meant to be an extensible template you can modify to suit your needs.
@@ -63,3 +75,12 @@ This tab tracks the daily closing price for all crypto symbols in the config tab
 #### Debug
 To help troubleshoot problems, the debug tab logs all API calls and the results of the call. Each time the worksheet is refreshed the debug tab is cleared and each call is logged sequentially.
 
+### License
+Copyright 2019 Chris Hundley
+
+MIT LICENSE
+ Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the 'Software'), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
