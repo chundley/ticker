@@ -748,8 +748,6 @@ function refreshCryptoDetail(row) {
  * Removes existing charts from the dashboard and re-creates them for the four categories of charts
  */
 function refreshDashboardCharts() {
-  removeChartsFromSheet(sheetNames.dashboard);
-
   alert('Updating historical stock charts');
   refreshYearStockCharts();
 
