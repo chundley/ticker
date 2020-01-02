@@ -1,11 +1,13 @@
 /**
+ * TICKER v1.1
+ *
  * Interface to the CryptoCompare API for Google Sheets implementation
  *
  * https://min-api.cryptocompare.com/documentation
  *
  * Rate limit: 50/sec 2500/minute, 25K/hour, 100K/month
  *
- * Copyright 2019 Chris Hundley
+ * Copyright 2019-2020 Chris Hundley
  *
  * MIT LICENSE
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation

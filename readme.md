@@ -89,6 +89,17 @@ If you feel like fixing a bug or adding some logic, clone and/or fork this repos
 
 Issues can be added to the issues tab of this repo.
 
+### Change history
+
+#### 1.0
+Initial release - mostly works if you don't mess to much with it. Has a problem finishing the script when there are a lot of symbols and charts to render.
+
+#### 1.1
+
+* For full year history, stocks now only pull approximately one data point per week (varies depending on holidays, etc.). Crypto pulls about the same give or take. This is to reduce the number of data points in the worksheets as well as for rendering charts. Full refreshes work much better now
+* For daily history, only rendering in 15-20 minute increments rather than 5 minutes. Same reason
+* Added a button and a bit of logic for refreshing just charts. If you have a lot of symbols the charts can time out on larger refreshes. The button lets you refresh charts by themselves once the rest of the data is pulled
+
 ### License
 Copyright 2019 Chris Hundley
 
