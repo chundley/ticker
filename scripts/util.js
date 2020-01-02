@@ -1,5 +1,5 @@
 /**
- * TICKER v1.0
+ * TICKER v1.1
  *
  * Utility functions for managing/manipulating data in a Google sheet
  *
@@ -8,7 +8,7 @@
  *   - https://developers.google.com/apps-script/reference/spreadsheet/range
  *
  *
- * Copyright 2019 Chris Hundley
+ * Copyright 2019-2020 Chris Hundley
  *
  * MIT LICENSE
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation

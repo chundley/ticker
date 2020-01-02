@@ -1,5 +1,5 @@
 /**
- * TICKER v1.0
+ * TICKER v1.1
  *
  * Interface to the Alpaca API
  *
@@ -7,7 +7,7 @@
  *
  * Rate limit: 200 requests per minute
  *
- * Copyright 2019 Chris Hundley
+ * Copyright 2019-2020 Chris Hundley
  *
  * MIT LICENSE
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation

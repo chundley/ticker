@@ -1,12 +1,12 @@
 /**
- * TICKER v1.0
+ * TICKER v1.1
  *
  * This script uses 3rd-party API's for stock and crypto pricing data to keep assets
  * up to date in a Google sheet.
  *
  * Documentation: https://github.com/chundley/ticker
  *
- * Copyright 2019 Chris Hundley
+ * Copyright 2019-2020 Chris Hundley
  *
  * MIT LICENSE
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation
@@ -295,6 +295,7 @@ function updateStockDashboard() {
 
   // save context for use later
   context.lastDashboardRowUsed = row;
+  setCell(sheetNames.config, 'B19', context.lastDashboardRowUsed);
   context.stockTotal = totals;
   context.stockDetail = sData;
 }
@@ -309,19 +310,28 @@ function refreshStockHistory() {
   var row = 3;
   var datesDone = false;
 
-  clearRangeValues(sheetNames.stockHistory, 'A3:IQ103');
+  clearRangeValues(sheetNames.stockHistory, 'A3:CZ103');
   symbols.forEach(function(symbol) {
     // account for bad symbols
     if (data[symbol]) {
       var column = 'A';
       setCell(sheetNames.stockHistory, column + row, symbol);
       data[symbol] = data[symbol].reverse();
+      var dayMod = 4;
+      var totDays = 0;
       data[symbol].forEach(function(day) {
-        column = getNextColumn(column);
-        if (!datesDone) {
-          setCell(sheetNames.stockHistory, column + '2', new Date(day.t*1000));
+        totDays++;
+        if (dayMod % 3 == 1 || totDays < 3) {
+          column = getNextColumn(column);
+          if (!datesDone) {
+            setCell(sheetNames.stockHistory, column + '2', new Date(day.t*1000));
+          }
+          setCell(sheetNames.stockHistory, column + row, day.c);
         }
-        setCell(sheetNames.stockHistory, column + row, day.c);
+        dayMod--;
+        if (dayMod == 1) {
+          dayMod = 4;
+        }
       });
       datesDone = true;
       row++;
@@ -343,19 +353,26 @@ function refreshCryptoCurrent() {
   var row = 3;
   var datesDone = false;
 
-  clearRangeValues(sheetNames.cryptoCurrent, 'A3:RN103');
+  clearRangeValues(sheetNames.cryptoCurrent, 'A3:CZ103');
   symbols.forEach(function(symbol) {
     // account for bad symbols
     if (data[symbol]) {
       var column = 'A';
       setCell(sheetNames.cryptoCurrent, column + row, symbol);
       data[symbol] = data[symbol].reverse();
+      var rowMod = 6;
       data[symbol].forEach(function(day) {
-        column = getNextColumn(column);
-        if (!datesDone) {
-          setCell(sheetNames.cryptoCurrent, column + '2', new Date(day.time*1000));
+        if (rowMod % 5 == 1) {
+          column = getNextColumn(column);
+          if (!datesDone) {
+            setCell(sheetNames.cryptoCurrent, column + '2', new Date(day.time*1000));
+          }
+          setCell(sheetNames.cryptoCurrent, column + row, day.close);
         }
-        setCell(sheetNames.cryptoCurrent, column + row, day.close);
+        rowMod--;
+        if (rowMod == 1) {
+          rowMod = 6;
+        }
       });
       datesDone = true;
       row++;
@@ -501,6 +518,7 @@ function updateCryptoDashboard() {
 
   // save context for use later
   context.lastDashboardRowUsed = row;
+  setCell(sheetNames.config, 'B19', context.lastDashboardRowUsed);
   context.cryptoTotal = totals;
   context.cryptoDetail = sData;
 }
@@ -514,19 +532,28 @@ function refreshCryptoHistory() {
   var row = 3;
   var datesDone = false;
 
-  clearRangeValues(sheetNames.cryptoHistory, 'A3:NC103');
+  clearRangeValues(sheetNames.cryptoHistory, 'A3:CZ103');
   symbols.forEach(function(symbol) {
     // account for bad symbols
     if (data[symbol]) {
       var column = 'A';
       setCell(sheetNames.cryptoHistory, column + row, symbol);
       data[symbol] = data[symbol].reverse();
+      var dayMod = 5;
+      var totDays = 0;
       data[symbol].forEach(function(day) {
-        column = getNextColumn(column);
-        if (!datesDone) {
-          setCell(sheetNames.cryptoHistory, column + '2', new Date(day.time*1000));
+        totDays++;
+        if (dayMod % 4 == 1 || totDays < 3) {
+          column = getNextColumn(column);
+          if (!datesDone) {
+            setCell(sheetNames.cryptoHistory, column + '2', new Date(day.time*1000));
+          }
+          setCell(sheetNames.cryptoHistory, column + row, day.close);
         }
-        setCell(sheetNames.cryptoHistory, column + row, day.close);
+        dayMod--;
+        if (dayMod == 1) {
+          dayMod = 5;
+        }
       });
       datesDone = true;
       row++;
@@ -537,6 +564,8 @@ function refreshCryptoHistory() {
 /**
  * Refresh stock data on the detail tab. Once complete, also calls the refreshCrypto function. It's done here
  * because we need to pass in the starting row after having refreshed the stock detail
+ *
+ * This is brittle because the history is grabbed based on hard-coded columns that approximate time periods
  */
 function refreshDetail() {
   var symbols = getUniqueSymbols(sheetNames.config, 'D', 4);
@@ -560,9 +589,6 @@ function refreshDetail() {
         setCell(sheetNames.detail, 'I' + row, cSymbol);
         var today = getCell(sheetNames.stockCurrent, 'B' + cRow);
         latestPrices[symbol] = today;
-        var compare = getLastValueInRow(sheetNames.stockCurrent, 'B', cRow);
-        setCell(sheetNames.detail, 'B' + row, (today - compare)/compare);
-        setCell(sheetNames.detail, 'J' + row, today - compare);
       }
       cRow++;
     }
@@ -577,8 +603,19 @@ function refreshDetail() {
       if (hSymbol == symbol) {
         done = true;
 
+        // day change
+        var compare = getCell(sheetNames.stockHistory, 'B'+ hRow);
+        if (compare) {
+          setCell(sheetNames.detail, 'B' + row, (latestPrices[symbol] - compare)/compare);
+          setCell(sheetNames.detail, 'J' + row, latestPrices[symbol] - compare);
+        }
+        else {
+          setCell(sheetNames.detail, 'B' + row, 'n/a');
+          setCell(sheetNames.detail, 'J' + row, 'n/a');
+        }
+
         // week change
-        var compare = getCell(sheetNames.stockHistory, 'F'+ hRow);
+        compare = getCell(sheetNames.stockHistory, 'D'+ hRow);
         if (compare) {
           setCell(sheetNames.detail, 'C' + row, (latestPrices[symbol] - compare)/compare);
           setCell(sheetNames.detail, 'K' + row, latestPrices[symbol] - compare);
@@ -589,7 +626,7 @@ function refreshDetail() {
         }
 
         // month change
-        compare = getCell(sheetNames.stockHistory, 'V'+ hRow);
+        compare = getCell(sheetNames.stockHistory, 'J'+ hRow);
         if (compare) {
           setCell(sheetNames.detail, 'D' + row, (latestPrices[symbol] - compare)/compare);
           setCell(sheetNames.detail, 'L' + row, latestPrices[symbol] - compare);
@@ -600,7 +637,7 @@ function refreshDetail() {
         }
 
         // three month change
-        compare = getCell(sheetNames.stockHistory, 'BM'+ hRow);
+        compare = getCell(sheetNames.stockHistory, 'X'+ hRow);
         if (compare) {
           setCell(sheetNames.detail, 'E' + row, (latestPrices[symbol] - compare)/compare);
           setCell(sheetNames.detail, 'M' + row, latestPrices[symbol] - compare);
@@ -611,7 +648,7 @@ function refreshDetail() {
         }
 
         // six month change
-        compare = getCell(sheetNames.stockHistory, 'DV'+ hRow);
+        compare = getCell(sheetNames.stockHistory, 'AS'+ hRow);
         if (compare) {
           setCell(sheetNames.detail, 'F' + row, (latestPrices[symbol] - compare)/compare);
           setCell(sheetNames.detail, 'N' + row, latestPrices[symbol] - compare);
@@ -622,7 +659,7 @@ function refreshDetail() {
         }
 
         // twelve month change
-        compare = getCell(sheetNames.stockHistory, 'IQ'+ hRow);
+        compare = getCell(sheetNames.stockHistory, 'CH'+ hRow);
         if (compare) {
           setCell(sheetNames.detail, 'G' + row, (latestPrices[symbol] - compare)/compare);
           setCell(sheetNames.detail, 'O' + row, latestPrices[symbol] - compare);
@@ -664,9 +701,6 @@ function refreshCryptoDetail(row) {
         setCell(sheetNames.detail, 'I' + row, cSymbol);
         var today = getCell(sheetNames.cryptoCurrent, 'B' + cRow);
         latestPrices[symbol] = today;
-        var compare = getLastValueInRow(sheetNames.cryptoCurrent, 'B', cRow);
-        setCell(sheetNames.detail, 'B' + row, (today - compare)/compare);
-        setCell(sheetNames.detail, 'J' + row, today - compare);
       }
       cRow++;
     }
@@ -681,8 +715,20 @@ function refreshCryptoDetail(row) {
       if (hSymbol == symbol) {
         done = true;
 
+        // day change
+        var compare = getCell(sheetNames.cryptoHistory, 'B'+ hRow);
+        if (compare) {
+          setCell(sheetNames.detail, 'B' + row, (latestPrices[symbol] - compare)/compare);
+          setCell(sheetNames.detail, 'J' + row, latestPrices[symbol] - compare);
+
+        }
+        else {
+          setCell(sheetNames.detail, 'B' + row, 'n/a');
+          setCell(sheetNames.detail, 'J' + row, 'n/a');
+        }
+
         // week change
-        var compare = getCell(sheetNames.cryptoHistory, 'H'+ hRow);
+        var compare = getCell(sheetNames.cryptoHistory, 'E'+ hRow);
         if (compare) {
           setCell(sheetNames.detail, 'C' + row, (latestPrices[symbol] - compare)/compare);
           setCell(sheetNames.detail, 'K' + row, latestPrices[symbol] - compare);
@@ -694,7 +740,7 @@ function refreshCryptoDetail(row) {
         }
 
         // month change
-        compare = getCell(sheetNames.cryptoHistory, 'AF'+ hRow);
+        compare = getCell(sheetNames.cryptoHistory, 'J'+ hRow);
         if (compare) {
           setCell(sheetNames.detail, 'D' + row, (latestPrices[symbol] - compare)/compare);
           setCell(sheetNames.detail, 'L' + row, latestPrices[symbol] - compare);
@@ -705,7 +751,7 @@ function refreshCryptoDetail(row) {
         }
 
         // three month change
-        compare = getCell(sheetNames.cryptoHistory, 'CO'+ hRow);
+        compare = getCell(sheetNames.cryptoHistory, 'Z'+ hRow);
         if (compare) {
           setCell(sheetNames.detail, 'E' + row, (latestPrices[symbol] - compare)/compare);
           setCell(sheetNames.detail, 'M' + row, latestPrices[symbol] - compare);
@@ -716,7 +762,7 @@ function refreshCryptoDetail(row) {
         }
 
         // six month change
-        compare = getCell(sheetNames.cryptoHistory, 'EV'+ hRow);
+        compare = getCell(sheetNames.cryptoHistory, 'AW'+ hRow);
         if (compare) {
           setCell(sheetNames.detail, 'F' + row, (latestPrices[symbol] - compare)/compare);
           setCell(sheetNames.detail, 'N' + row, latestPrices[symbol] - compare);
@@ -727,7 +773,7 @@ function refreshCryptoDetail(row) {
         }
 
         // twelve month change
-        compare = getCell(sheetNames.cryptoHistory, 'NB'+ hRow);
+        compare = getCell(sheetNames.cryptoHistory, 'CO'+ hRow);
         if (compare) {
           setCell(sheetNames.detail, 'G' + row, (latestPrices[symbol] - compare)/compare);
           setCell(sheetNames.detail, 'O' + row, latestPrices[symbol] - compare);
@@ -748,6 +794,8 @@ function refreshCryptoDetail(row) {
  * Removes existing charts from the dashboard and re-creates them for the four categories of charts
  */
 function refreshDashboardCharts() {
+  removeChartsFromSheet(sheetNames.dashboard);
+  context.lastDashboardRowUsed = getCell(sheetNames.config, 'B19');
   alert('Updating historical stock charts');
   refreshYearStockCharts();
 
@@ -792,7 +840,7 @@ function refreshYearStockCharts() {
   while (!done) {
     var symbol = getCell(sheetNames.stockHistory, 'A' + row);
     if (symbol) {
-      var range = historySheet.getRange('B' + row + ':IQ' + row);
+      var range = historySheet.getRange('B' + row + ':CZ' + row);
       options.title = symbol;
       areaChart(sheetNames.dashboard, range, options);
       row++;
@@ -834,7 +882,7 @@ function refreshDayStockCharts() {
   while (!done) {
     var symbol = getCell(sheetNames.stockCurrent, 'A' + row);
     if (symbol) {
-      var range = currentSheet.getRange('B' + row + ':CC' + row);
+      var range = currentSheet.getRange('B' + row + ':CZ' + row);
       options.title = symbol;
       areaChart(sheetNames.dashboard, range, options);
       row++;
@@ -876,7 +924,7 @@ function refreshYearCryptoCharts() {
   while (!done) {
     var symbol = getCell(sheetNames.cryptoHistory, 'A' + row);
     if (symbol) {
-      var range = historySheet.getRange('B' + row + ':NC' + row);
+      var range = historySheet.getRange('B' + row + ':CZ' + row);
       options.title = symbol;
       areaChart(sheetNames.dashboard, range, options);
       row++;
@@ -918,7 +966,7 @@ function refreshDayCryptoCharts() {
   while (!done) {
     var symbol = getCell(sheetNames.cryptoCurrent, 'A' + row);
     if (symbol) {
-      var range = historySheet.getRange('B' + row + ':RN' + row);
+      var range = historySheet.getRange('B' + row + ':CZ' + row);
       options.title = symbol;
       areaChart(sheetNames.dashboard, range, options);
       row++;
